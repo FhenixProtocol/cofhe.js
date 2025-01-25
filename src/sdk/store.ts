@@ -151,7 +151,8 @@ export const _store_initialize = async (params: InitializationParams) => {
     projects: projectRequirements = [],
     coFheUrl = undefined,
   } = params;
-
+  console.log("TTT 2");
+  console.log(params);
   console.log("TTT 2");
   _sdkStore.setState({
     providerInitialized: false,
