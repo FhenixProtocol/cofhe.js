@@ -264,7 +264,11 @@ export const _store_fetchFheKey = async (
     const data = await res.json();
 
     publicKey = `0x${data.securityZone}`;
+    console.log("TTT 11");
+    console.log(publicKey);
+    console.log("TTT 11");
   } catch (err) {
+    console.error(err);
     throw new Error(
       `Error initializing fhenixjs; fetching FHE publicKey from CoFHE failed with error ${err}`,
     );
