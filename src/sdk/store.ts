@@ -263,7 +263,7 @@ export const _store_fetchFheKey = async (
 
     const data = await res.json();
 
-    publicKey = `${data.securityZone}`;
+    publicKey = `0x${data.securityZone}`;
     console.log("TTT 11");
     console.log(publicKey);
     console.log("TTT 11");
