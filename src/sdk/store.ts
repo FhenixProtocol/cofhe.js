@@ -245,7 +245,7 @@ export const _store_fetchFheKey = async (
   const coFheUrl = _sdkStore.getState().coFheUrl;
   if (coFheUrl == null || typeof coFheUrl !== "string") {
     throw new Error(
-      "Error initializing fhenixjs; coFheUrl invalid, ensure it is set in `fhenixsdk.initialize`",
+      "Error initializing cofhejs; coFheUrl invalid, ensure it is set in `fhenixsdk.initialize`",
     );
   }
 
@@ -263,37 +263,39 @@ export const _store_fetchFheKey = async (
 
     const data = await res.json();
 
-    publicKey = `0x${data.securityZone}`;
+    publicKey = `${data.securityZone}`;
     console.log("TTT 11");
     console.log(publicKey);
     console.log("TTT 11");
   } catch (err) {
     console.error(err);
     throw new Error(
-      `Error initializing fhenixjs; fetching FHE publicKey from CoFHE failed with error ${err}`,
+      `Error initializing cofhejs; fetching FHE publicKey from CoFHE failed with error ${err}`,
     );
   }
 
   if (publicKey == null || typeof publicKey !== "string") {
     throw new Error(
-      `Error initializing fhenixjs; FHE publicKey fetched from CoFHE invalid: not a string`,
+      `Error initializing cofhejs; FHE publicKey fetched from CoFHE invalid: not a string`,
     );
   }
 
   if (publicKey === "0x") {
     throw new Error(
-      "Error initializing fhenixjs; provided chain is not FHE enabled, no FHE publicKey found",
+      "Error initializing cofhejs; provided chain is not FHE enabled, no FHE publicKey found",
     );
   }
 
   if (publicKey.length < PUBLIC_KEY_LENGTH_MIN) {
     throw new Error(
-      `Error initializing fhenixjs; got shorter than expected FHE publicKey: ${publicKey.length}. Expected length >= ${PUBLIC_KEY_LENGTH_MIN}`,
+      `Error initializing cofhejs; got shorter than expected FHE publicKey: ${publicKey.length}. Expected length >= ${PUBLIC_KEY_LENGTH_MIN}`,
     );
   }
 
   const buff = fromHexString(publicKey);
-
+  console.log("TTT 12");
+  console.log(buff);
+  console.log("TTT 12");
   try {
     const key = TfheCompactPublicKey.deserialize(buff);
     _store_setFheKey(chainId, securityZone, key);
