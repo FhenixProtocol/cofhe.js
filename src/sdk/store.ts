@@ -297,7 +297,11 @@ export const _store_fetchFheKey = async (
   console.log(buff);
   console.log("TTT 12");
   try {
+    console.log("TTT 13");  
+    console.log(TfheCompactPublicKey);
+    console.log("TTT 13");  
     const key = TfheCompactPublicKey.deserialize(buff);
+    console.log("TTT 14");  
     _store_setFheKey(chainId, securityZone, key);
     return key;
   } catch (err) {
