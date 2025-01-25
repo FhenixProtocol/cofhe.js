@@ -47,6 +47,7 @@ const initialize = async (
   },
 ): Promise<Result<PermitV2 | undefined>> => {
   // Initialize the fhevm
+  console.log("TOVI: Initializing FHEVM...");
   await InitFhevm().catch((err: unknown) => {
     if (params.ignoreErrors) {
       return undefined;
@@ -56,6 +57,7 @@ const initialize = async (
       );
     }
   });
+  console.log("TOVI: 1...");  
 
   if (params.provider == null)
     return ResultErr(
@@ -72,10 +74,11 @@ const initialize = async (
   // `generatePermit` must set to `false` to early exit here
   if (params.generatePermit === false) return ResultOk(undefined);
 
+  console.log("TOVI: 2...");  
   // Return the existing active permit
   const userActivePermit = getPermit();
   if (userActivePermit.success) return userActivePermit;
-
+  console.log("TOVI: 3...");  
   // Create permit and return it
   return createPermit();
 };
