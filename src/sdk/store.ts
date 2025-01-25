@@ -85,6 +85,7 @@ const _store_getFheKey = (
 ): TfheCompactPublicKey | undefined => {
   if (chainId == null || securityZone == null) return undefined;
 
+  
   const serialized = _sdkStore.getState().fheKeys[chainId]?.[securityZone];
   if (serialized == null) return undefined;
 
@@ -141,6 +142,7 @@ const getChainIdFromProvider = async (
 // External functionality
 
 export const _store_initialize = async (params: InitializationParams) => {
+  console.log("TTT 1");
   const {
     provider,
     signer,
@@ -150,6 +152,7 @@ export const _store_initialize = async (params: InitializationParams) => {
     coFheUrl = undefined,
   } = params;
 
+  console.log("TTT 2");
   _sdkStore.setState({
     providerInitialized: false,
     signerInitialized: false,
@@ -163,12 +166,15 @@ export const _store_initialize = async (params: InitializationParams) => {
   // PROVIDER
 
   // Fetch chain Id from provider
+  console.log("TTT 3");
   const chainId = await getChainIdFromProvider(provider);
+  console.log("TTT 4");
   const chainIdChanged =
     chainId != null && chainId !== _sdkStore.getState().chainId;
   if (chainId != null && provider != null) {
     _sdkStore.setState({ providerInitialized: true, provider, chainId });
   }
+  console.log("TTT 5");
 
   // SIGNER
 
@@ -186,6 +192,8 @@ export const _store_initialize = async (params: InitializationParams) => {
     });
   }
 
+  console.log("TTT 6");
+
   // If chainId, securityZones, or CoFhe enabled changes, update the store and update fheKeys for re-initialization
   const securityZonesChanged =
     securityZones !== _sdkStore.getState().securityZones;
@@ -196,8 +204,11 @@ export const _store_initialize = async (params: InitializationParams) => {
     });
   }
 
+  console.log("TTT 7");
+
   // Fetch FHE keys (skipped if hardhat)
   if (!chainIsHardhat(chainId) && !_sdkStore.getState().fheKeysInitialized) {
+    console.log("TTT 8");
     await Promise.all(
       securityZones.map((securityZone) =>
         _store_fetchFheKey(chainId, securityZone, true),
@@ -220,9 +231,14 @@ export const _store_fetchFheKey = async (
   securityZone: number = 0,
   forceFetch = false,
 ): Promise<TfheCompactPublicKey> => {
+  console.log("TTT 9");
+  console.log("chainId", chainId);
+  console.log("securityZone", securityZone);
+  console.log("TTT 9");
   const storedKey = _store_getFheKey(chainId, securityZone);
+  console.log("TTT 10");
   if (storedKey != null && !forceFetch) return storedKey;
-
+  
   const coFheUrl = _sdkStore.getState().coFheUrl;
   if (coFheUrl == null || typeof coFheUrl !== "string") {
     throw new Error(
