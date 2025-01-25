@@ -237,6 +237,8 @@ export const _store_fetchFheKey = async (
   console.log("TTT 9");
   const storedKey = _store_getFheKey(chainId, securityZone);
   console.log("TTT 10");
+  console.log(storedKey);
+  console.log("TTT 10");
   if (storedKey != null && !forceFetch) return storedKey;
   
   const coFheUrl = _sdkStore.getState().coFheUrl;
