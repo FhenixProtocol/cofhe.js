@@ -38,7 +38,6 @@
     "test-no-localfhenix": "SKIP_LOCAL_ENV=true VITE_CJS_IGNORE_WARNING=true vitest ",
     "prettier": "prettier --write \"**/*.{js,json,md,sol,ts,yml}\"",
     "prettier-ci": "prettier --check \"**/*.{js,json,md,sol,ts,yml}\""
-    
   },
   "repository": {
     "type": "git",
@@ -57,7 +56,8 @@
     "tweetnacl-util": "^0.15.1",
     "type-fest": "^4.26.1",
     "zod": "^3.23.8",
-    "zustand": "^5.0.1"
+    "zustand": "^5.0.1",
+    "tfhe": "^0.11.1"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "25.0.8",
