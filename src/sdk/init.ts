@@ -1,12 +1,13 @@
 import init, { init_panic_hook, InitOutput } from "tfhe";
 
-export let tfheInstance: InitOutput;
+let initialized: boolean;
 
 export const initTfhe: () => Promise<void> = async () => {
   try {
-    if (tfheInstance != null) return;
-    tfheInstance = await init();
+    if (initialized) return;
+    await init();
     await init_panic_hook();
+    initialized = true;
   } catch (err) {
     throw new Error(`Error initializing TFHE ${err}`);
   }
