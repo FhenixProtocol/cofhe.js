@@ -1,4 +1,4 @@
-import { isNumber } from "./validation.js";
+import { isNumber } from "./validation";
 
 export const toBigIntOrThrow = (value: bigint | string): bigint => {
   if (typeof value === "bigint") {

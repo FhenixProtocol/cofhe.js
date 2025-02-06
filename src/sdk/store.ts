@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createStore } from "zustand/vanilla";
 import { produce } from "immer";
-import { TfheCompactPublicKey } from "./fhe/fhe";
 import { fromHexString } from "./utils";
 import { chainIsHardhat } from "./utils.hardhat";
 import { PUBLIC_KEY_LENGTH_MIN } from "./consts";
@@ -11,6 +10,7 @@ import {
   InitializationParams,
   PermitV2AccessRequirements,
 } from "../types";
+import { TfheCompressedPublicKey } from "tfhe";
 
 type ChainRecord<T> = Record<string, T>;
 type SecurityZoneRecord<T> = Record<number, T>;
@@ -82,18 +82,18 @@ export const _sdkStore = createStore<SdkStore>(
 const _store_getFheKey = (
   chainId: string | undefined,
   securityZone = 0,
-): TfheCompactPublicKey | undefined => {
+): TfheCompressedPublicKey | undefined => {
   if (chainId == null || securityZone == null) return undefined;
 
   const serialized = _sdkStore.getState().fheKeys[chainId]?.[securityZone];
   if (serialized == null) return undefined;
 
-  return TfheCompactPublicKey.deserialize(serialized);
+  return TfheCompressedPublicKey.deserialize(serialized);
 };
 
 export const _store_getConnectedChainFheKey = (
   securityZone = 0,
-): TfheCompactPublicKey | undefined => {
+): TfheCompressedPublicKey | undefined => {
   const state = _sdkStore.getState();
 
   if (securityZone == null) return undefined;
@@ -102,13 +102,13 @@ export const _store_getConnectedChainFheKey = (
   const serialized = state.fheKeys[state.chainId]?.[securityZone];
   if (serialized == null) return undefined;
 
-  return TfheCompactPublicKey.deserialize(serialized);
+  return TfheCompressedPublicKey.deserialize(serialized);
 };
 
 export const _store_setFheKey = (
   chainId: string | undefined,
   securityZone: number | undefined,
-  fheKey: TfheCompactPublicKey | undefined,
+  fheKey: TfheCompressedPublicKey | undefined,
 ) => {
   if (chainId == null || securityZone == null) return;
 
@@ -130,7 +130,7 @@ const getChainIdFromProvider = async (
     const network = await provider.getNetwork();
     chainId = network.chainId;
   }
-  
+
   if (chainId == null)
     throw new Error(
       "sdk :: getChainIdFromProvider :: provider.getChainId returned a null result, ensure that your provider is connected to a network",
@@ -213,13 +213,13 @@ export const _store_initialize = async (params: InitializationParams) => {
  * If the key already exists in the store it is returned, else it is fetched, stored, and returned
  * @param {string} chainId - The chain to fetch the FHE key for, if no chainId provided, undefined is returned
  * @param securityZone - The security zone for which to retrieve the key (default 0).
- * @returns {Promise<TfheCompactPublicKey>} - The retrieved public key.
+ * @returns {Promise<TfheCompressedPublicKey>} - The retrieved public key.
  */
 export const _store_fetchFheKey = async (
   chainId: string,
   securityZone: number = 0,
   forceFetch = false,
-): Promise<TfheCompactPublicKey> => {
+): Promise<TfheCompressedPublicKey> => {
   const storedKey = _store_getFheKey(chainId, securityZone);
   if (storedKey != null && !forceFetch) return storedKey;
 
@@ -272,7 +272,7 @@ export const _store_fetchFheKey = async (
   const buff = fromHexString(publicKey);
 
   try {
-    const key = TfheCompactPublicKey.deserialize(buff);
+    const key = TfheCompressedPublicKey.deserialize(buff);
     _store_setFheKey(chainId, securityZone, key);
     return key;
   } catch (err) {

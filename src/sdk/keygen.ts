@@ -1,8 +1,4 @@
-import {
-  TfheClientKey,
-  TfheConfigBuilder,
-  TfheCompactPublicKey,
-} from "./fhe/tfhe";
+import { TfheClientKey, TfheCompactPublicKey, TfheConfigBuilder } from "tfhe";
 
 export const createTfheKeypair = () => {
   // const block_params = new ShortintParameters(

@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { toHexString } from "./utils.js";
-import { chainIsHardhat, hardhatMockEncrypt } from "./utils.hardhat.js";
+import { toHexString } from "./utils";
+import { chainIsHardhat, hardhatMockEncrypt } from "./utils.hardhat";
 import { PermitV2, permitStore, PermitV2ParamsValidator } from "./permit";
-import { isString } from "./validation.js";
+import { isString } from "./validation";
 import {
   _sdkStore,
   _store_getConnectedChainFheKey,
   _store_initialize,
   SdkStore,
-} from "./store.js";
+} from "./store";
 import {
   encrypt_bool as tfhe_encrypt_bool,
   encrypt_uint8 as tfhe_encrypt_uint8,
@@ -18,8 +18,8 @@ import {
   encrypt_uint128 as tfhe_encrypt_uint128,
   encrypt_uint256 as tfhe_encrypt_uint256,
   encrypt_address as tfhe_encrypt_address,
-} from "./encrypt.js";
-import { InitFhevm } from "./init.js";
+} from "./encrypt";
+import { initTfhe } from "./init";
 import {
   CoFheEncryptedNumber,
   FheUType,
@@ -47,7 +47,7 @@ const initialize = async (
   },
 ): Promise<Result<PermitV2 | undefined>> => {
   // Initialize the fhevm
-  await InitFhevm().catch((err: unknown) => {
+  await initTfhe().catch((err: unknown) => {
     if (params.ignoreErrors) {
       return undefined;
     } else {
