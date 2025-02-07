@@ -42,6 +42,12 @@ export const validateUintInRange = (
   }
 };
 
+export const recordToUint8Array = (record: Record<string, any>): Uint8Array => {
+  const jsonString = JSON.stringify(record);
+  const encoder = new TextEncoder();
+  return encoder.encode(jsonString);
+};
+
 export const fromHexString = (hexString: string): Uint8Array => {
   const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
   const arr = cleanString.replace(/^0x/, "").match(/.{1,2}/g);
