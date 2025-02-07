@@ -1,14 +1,13 @@
 import { Primitive, LiteralToPrimitive } from "type-fest";
 import { FheAllUTypes } from "./base";
-import { PermissionV2 } from "./permit";
 import {
-  CoFheEncryptedBool,
+  CoFheInBool,
   CoFheEncryptedUint8,
-  CoFheEncryptedUint16,
-  CoFheEncryptedUint32,
-  CoFheEncryptedUint64,
-  CoFheEncryptedUint128,
-  CoFheEncryptedUint256,
+  CoFheInUint16,
+  CoFheInUint32,
+  CoFheInUint64,
+  CoFheInUint128,
+  CoFheInUint256,
 } from "./encrypted";
 import { FheTypes } from "tfhe";
 
@@ -77,19 +76,19 @@ export type EncryptableItem =
 // COFHE Encrypt
 export type CoFheEncryptedItemMap<E extends EncryptableItem> =
   E extends EncryptableBool
-    ? CoFheEncryptedBool
+    ? CoFheInBool
     : E extends EncryptableUint8
       ? CoFheEncryptedUint8
       : E extends EncryptableUint16
-        ? CoFheEncryptedUint16
+        ? CoFheInUint16
         : E extends EncryptableUint32
-          ? CoFheEncryptedUint32
+          ? CoFheInUint32
           : E extends EncryptableUint64
-            ? CoFheEncryptedUint64
+            ? CoFheInUint64
             : E extends EncryptableUint128
-              ? CoFheEncryptedUint128
+              ? CoFheInUint128
               : E extends EncryptableUint256
-                ? CoFheEncryptedUint256
+                ? CoFheInUint256
                 : never;
 
 // export type MappedCoFheEncryptedTypes<T> = T extends "permission"

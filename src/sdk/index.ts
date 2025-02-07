@@ -21,7 +21,7 @@ import {
 } from "./encrypt";
 import { initTfhe } from "./init";
 import {
-  CoFheEncryptedNumber,
+  CoFheInItem,
   FheUType,
   MappedCoFheEncryptedTypes,
   isEncryptableItem,
@@ -340,16 +340,13 @@ function extractEncryptables<T>(item: T) {
 
 function replaceEncryptables<T>(
   item: T,
-  encryptedItems: CoFheEncryptedNumber[],
-): [MappedCoFheEncryptedTypes<T>, CoFheEncryptedNumber[]];
+  encryptedItems: CoFheInItem[],
+): [MappedCoFheEncryptedTypes<T>, CoFheInItem[]];
 function replaceEncryptables<T extends any[]>(
   item: [...T],
-  encryptedItems: CoFheEncryptedNumber[],
-): [...MappedCoFheEncryptedTypes<T>, CoFheEncryptedNumber[]];
-function replaceEncryptables<T>(
-  item: T,
-  encryptedItems: CoFheEncryptedNumber[],
-) {
+  encryptedItems: CoFheInItem[],
+): [...MappedCoFheEncryptedTypes<T>, CoFheInItem[]];
+function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
   if (isEncryptableItem(item)) {
     return [encryptedItems[0], encryptedItems.slice(1)];
   }
@@ -358,7 +355,7 @@ function replaceEncryptables<T>(
   if (typeof item === "object" && item !== null) {
     if (Array.isArray(item)) {
       // Array - recurse
-      return item.reduce<[any[], CoFheEncryptedNumber[]]>(
+      return item.reduce<[any[], CoFheInItem[]]>(
         ([acc, remaining], item) => {
           const [newItem, newRemaining] = replaceEncryptables(item, remaining);
           return [[...acc, newItem], newRemaining];
@@ -367,9 +364,7 @@ function replaceEncryptables<T>(
       );
     } else {
       // Object - recurse
-      return Object.entries(item).reduce<
-        [Record<string, any>, CoFheEncryptedNumber[]]
-      >(
+      return Object.entries(item).reduce<[Record<string, any>, CoFheInItem[]]>(
         ([acc, remaining], [key, value]) => {
           const [newValue, newRemaining] = replaceEncryptables(
             value,
@@ -476,7 +471,7 @@ async function prepareInputs<T>(item: T) {
       hash: BigInt(`0x${data.ctHash}`),
       utype: item.utype,
       signature: data.signature,
-    } as CoFheEncryptedNumber);
+    } as CoFheInItem);
   }
 
   // Object | Array
@@ -626,7 +621,7 @@ async function encrypt<T>(item: T) {
       hash: BigInt(`0x${data.ctHash}`),
       utype: item.utype,
       signature: data.signature,
-    } as CoFheEncryptedNumber);
+    } as CoFheInItem);
   }
 
   // Object | Array
