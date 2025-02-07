@@ -340,13 +340,16 @@ function extractEncryptables<T>(item: T) {
 
 function replaceEncryptables<T>(
   item: T,
-  encryptedItems: EncryptableItem[],
-): [MappedCoFheEncryptedTypes<T>, EncryptableItem[]];
+  encryptedItems: CoFheEncryptedNumber[],
+): [MappedCoFheEncryptedTypes<T>, CoFheEncryptedNumber[]];
 function replaceEncryptables<T extends any[]>(
   item: [...T],
-  encryptedItems: EncryptableItem[],
-): [...MappedCoFheEncryptedTypes<T>, EncryptableItem[]];
-function replaceEncryptables<T>(item: T, encryptedItems: EncryptableItem[]) {
+  encryptedItems: CoFheEncryptedNumber[],
+): [...MappedCoFheEncryptedTypes<T>, CoFheEncryptedNumber[]];
+function replaceEncryptables<T>(
+  item: T,
+  encryptedItems: CoFheEncryptedNumber[],
+) {
   if (isEncryptableItem(item)) {
     return [encryptedItems[0], encryptedItems.slice(1)];
   }
@@ -355,7 +358,7 @@ function replaceEncryptables<T>(item: T, encryptedItems: EncryptableItem[]) {
   if (typeof item === "object" && item !== null) {
     if (Array.isArray(item)) {
       // Array - recurse
-      return item.reduce<[any[], EncryptableItem[]]>(
+      return item.reduce<[any[], CoFheEncryptedNumber[]]>(
         ([acc, remaining], item) => {
           const [newItem, newRemaining] = replaceEncryptables(item, remaining);
           return [[...acc, newItem], newRemaining];
@@ -365,7 +368,7 @@ function replaceEncryptables<T>(item: T, encryptedItems: EncryptableItem[]) {
     } else {
       // Object - recurse
       return Object.entries(item).reduce<
-        [Record<string, any>, EncryptableItem[]]
+        [Record<string, any>, CoFheEncryptedNumber[]]
       >(
         ([acc, remaining], [key, value]) => {
           const [newValue, newRemaining] = replaceEncryptables(
