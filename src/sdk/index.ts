@@ -33,6 +33,7 @@ import {
   ResultOk,
   MappedUnsealedTypes,
   InitializationParams,
+  EncryptableItem,
 } from "../types";
 
 /**
@@ -315,6 +316,208 @@ const getAllPermits = (): Result<Record<string, PermitV2>> => {
 };
 
 // Encrypt
+
+function extractEncryptables<T>(item: T): EncryptableItem[];
+function extractEncryptables<T extends any[]>(item: [...T]): EncryptableItem[];
+function extractEncryptables<T>(item: T) {
+  if (isEncryptableItem(item)) {
+    return item;
+  }
+
+  // Object | Array
+  if (typeof item === "object" && item !== null) {
+    if (Array.isArray(item)) {
+      // Array - recurse
+      return item.flatMap((nestedItem) => extractEncryptables(nestedItem));
+    } else {
+      // Object - recurse
+      return Object.values(item).flatMap((value) => extractEncryptables(value));
+    }
+  }
+
+  return [];
+}
+
+function replaceEncryptables<T>(
+  item: T,
+  encryptedItems: EncryptableItem[],
+): [MappedCoFheEncryptedTypes<T>, EncryptableItem[]];
+function replaceEncryptables<T extends any[]>(
+  item: [...T],
+  encryptedItems: EncryptableItem[],
+): [...MappedCoFheEncryptedTypes<T>, EncryptableItem[]];
+function replaceEncryptables<T>(item: T, encryptedItems: EncryptableItem[]) {
+  if (isEncryptableItem(item)) {
+    return [encryptedItems[0], encryptedItems.slice(1)];
+  }
+
+  // Object | Array
+  if (typeof item === "object" && item !== null) {
+    if (Array.isArray(item)) {
+      // Array - recurse
+      return item.reduce<[any[], EncryptableItem[]]>(
+        ([acc, remaining], item) => {
+          const [newItem, newRemaining] = replaceEncryptables(item, remaining);
+          return [[...acc, newItem], newRemaining];
+        },
+        [[], encryptedItems],
+      );
+    } else {
+      // Object - recurse
+      return Object.entries(item).reduce<
+        [Record<string, any>, EncryptableItem[]]
+      >(
+        ([acc, remaining], [key, value]) => {
+          const [newValue, newRemaining] = replaceEncryptables(
+            value,
+            remaining,
+          );
+          return [{ ...acc, [key]: newValue }, newRemaining];
+        },
+        [{}, encryptedItems],
+      );
+    }
+  }
+
+  return [item, encryptedItems];
+}
+
+async function prepareInputs<T>(
+  item: T,
+): Promise<Result<MappedCoFheEncryptedTypes<T>>>;
+async function prepareInputs<T extends any[]>(
+  item: [...T],
+): Promise<Result<[...MappedCoFheEncryptedTypes<T>]>>;
+async function prepareInputs<T>(item: T) {
+  const state = _sdkStore.getState();
+
+  // Only need to check `fheKeysInitialized`, signer and provider not needed for encryption
+  const initialized = _checkInitialized(state, {
+    provider: false,
+    signer: false,
+  });
+  if (!initialized.success)
+    return ResultErr(`${encrypt.name} :: ${initialized.error}`);
+
+  // EncryptableItem
+  if (isEncryptableItem(item)) {
+    // Early exit with mock encrypted value if chain is hardhat
+    // TODO: Determine how CoFHE encrypted items will be handled in hardhat
+    if (chainIsHardhat(state.coFheUrl))
+      return ResultOk(hardhatMockEncrypt(BigInt(item.data)));
+
+    const fhePublicKey = _store_getConnectedChainFheKey(item.securityZone ?? 0);
+    if (fhePublicKey == null)
+      return ResultErr("encrypt :: fheKey for current chain not found");
+
+    let preEncryptedItem;
+
+    // prettier-ignore
+    try {
+      switch (item.utype) {
+        case FheUType.bool: {
+          preEncryptedItem = tfhe_encrypt_bool(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+        case FheUType.uint8: {
+          preEncryptedItem = tfhe_encrypt_uint8(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+        case FheUType.uint16: {
+          preEncryptedItem = tfhe_encrypt_uint16(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+        case FheUType.uint32: {
+          preEncryptedItem = tfhe_encrypt_uint32(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+        case FheUType.uint64: {
+          preEncryptedItem = tfhe_encrypt_uint64(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+        case FheUType.uint128: {
+          preEncryptedItem = tfhe_encrypt_uint128(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+        case FheUType.uint256: {
+          preEncryptedItem = tfhe_encrypt_uint256(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+        case FheUType.address: {
+          preEncryptedItem = tfhe_encrypt_address(item.data, fhePublicKey, item.securityZone);
+          break;
+        }
+      }
+    } catch (e) {
+      return ResultErr(`encrypt :: tfhe_encrypt_xxxx :: ${e}`)
+    }
+
+    // Send preEncryptedItem to CoFHE route `/UpdateCT`, receive `ctHash` to use as contract input
+    const res = (await fetch(`${state.coFheUrl}/UpdateCT`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", // Ensure the server knows you're sending JSON
+      },
+      body: JSON.stringify({
+        UType: item.utype,
+        Value: toHexString(preEncryptedItem.data),
+        SecurityZone: item.securityZone,
+      }),
+    })) as any;
+
+    const data = await res.json();
+
+    // Transform data into final CoFHE input variable
+    return ResultOk({
+      securityZone: item.securityZone,
+      hash: BigInt(`0x${data.ctHash}`),
+      utype: item.utype,
+      signature: data.signature,
+    } as CoFheEncryptedNumber);
+  }
+
+  // Object | Array
+  if (typeof item === "object" && item !== null) {
+    if (Array.isArray(item)) {
+      // Array - recurse
+      const nestedItems = await Promise.all(
+        item.map((nestedItem) => encrypt(nestedItem)),
+      );
+
+      // Any nested error break out
+      const nestedItemResultErr = nestedItems.find(
+        (nestedItem) => !nestedItem.success,
+      );
+      if (nestedItemResultErr != null) return nestedItemResultErr;
+
+      return ResultOk(nestedItems.map((nestedItem) => nestedItem.data));
+    } else {
+      // Object - recurse
+      const nestedKeyedItems = await Promise.all(
+        Object.entries(item).map(async ([key, value]) => ({
+          key,
+          value: await encrypt(value),
+        })),
+      );
+
+      // Any nested error break out
+      const nestedItemResultErr = nestedKeyedItems.find(
+        ({ value }) => !value.success,
+      );
+      if (nestedItemResultErr != null) return nestedItemResultErr;
+
+      const result: Record<string, any> = {};
+      nestedKeyedItems.forEach(({ key, value }) => {
+        result[key] = value.data;
+      });
+
+      return ResultOk(result);
+    }
+  }
+
+  // Primitive
+  return ResultOk(item);
+}
 
 /**
  * Encrypts a numeric value according to the specified encryption type or the most efficient one based on the value.

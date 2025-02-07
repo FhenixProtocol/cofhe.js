@@ -1,4 +1,4 @@
-import { FheUType } from "./base";
+import { FheTypes } from "tfhe";
 
 export type EncryptedNumber = {
   data: Uint8Array;
@@ -18,29 +18,26 @@ export type CoFheEncryptedNumber = {
   securityZone: number;
   hash: bigint;
   signature: string;
-  utype: FheUType;
+  utype: FheTypes;
 };
 export type CoFheEncryptedBool = CoFheEncryptedNumber & {
-  utype: FheUType.bool;
+  utype: FheTypes.Bool;
 };
 export type CoFheEncryptedUint8 = CoFheEncryptedNumber & {
-  utype: FheUType.uint8;
+  utype: FheTypes.Uint8;
 };
 export type CoFheEncryptedUint16 = CoFheEncryptedNumber & {
-  utype: FheUType.uint16;
+  utype: FheTypes.Uint16;
 };
 export type CoFheEncryptedUint32 = CoFheEncryptedNumber & {
-  utype: FheUType.uint32;
+  utype: FheTypes.Uint32;
 };
 export type CoFheEncryptedUint64 = CoFheEncryptedNumber & {
-  utype: FheUType.uint64;
+  utype: FheTypes.Uint64;
 };
 export type CoFheEncryptedUint128 = CoFheEncryptedNumber & {
-  utype: FheUType.uint128;
+  utype: FheTypes.Uint128;
 };
 export type CoFheEncryptedUint256 = CoFheEncryptedNumber & {
-  utype: FheUType.uint256;
-};
-export type CoFheEncryptedAddress = CoFheEncryptedNumber & {
-  utype: FheUType.address;
+  utype: FheTypes.Uint256;
 };

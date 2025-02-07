@@ -1,5 +1,5 @@
 import { Primitive, LiteralToPrimitive } from "type-fest";
-import { FheAllUTypes, FheUType } from "./base";
+import { FheAllUTypes } from "./base";
 import { PermissionV2 } from "./permit";
 import {
   CoFheEncryptedBool,
@@ -9,67 +9,60 @@ import {
   CoFheEncryptedUint64,
   CoFheEncryptedUint128,
   CoFheEncryptedUint256,
-  CoFheEncryptedAddress,
 } from "./encrypted";
+import { FheTypes } from "tfhe";
 
 export type EncryptableBool = {
   data: boolean;
   securityZone?: number;
-  utype: FheUType.bool;
+  utype: FheTypes.Bool;
 };
 export type EncryptableUint8 = {
   data: string | bigint;
   securityZone?: number;
-  utype: FheUType.uint8;
+  utype: FheTypes.Uint8;
 };
 export type EncryptableUint16 = {
   data: string | bigint;
   securityZone?: number;
-  utype: FheUType.uint16;
+  utype: FheTypes.Uint16;
 };
 export type EncryptableUint32 = {
   data: string | bigint;
   securityZone?: number;
-  utype: FheUType.uint32;
+  utype: FheTypes.Uint32;
 };
 export type EncryptableUint64 = {
   data: string | bigint;
   securityZone?: number;
-  utype: FheUType.uint64;
+  utype: FheTypes.Uint64;
 };
 export type EncryptableUint128 = {
   data: string | bigint;
   securityZone?: number;
-  utype: FheUType.uint128;
+  utype: FheTypes.Uint128;
 };
 export type EncryptableUint256 = {
   data: string | bigint;
   securityZone?: number;
-  utype: FheUType.uint256;
-};
-export type EncryptableAddress = {
-  data: string;
-  securityZone?: number;
-  utype: FheUType.address;
+  utype: FheTypes.Uint256;
 };
 
 export const Encryptable = {
   bool: (data: EncryptableBool["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.bool }) as EncryptableBool,
+    ({ data, securityZone, utype: FheTypes.Bool }) as EncryptableBool,
   uint8: (data: EncryptableUint8["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.uint8 }) as EncryptableUint8,
+    ({ data, securityZone, utype: FheTypes.Uint8 }) as EncryptableUint8,
   uint16: (data: EncryptableUint16["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.uint16 }) as EncryptableUint16,
+    ({ data, securityZone, utype: FheTypes.Uint16 }) as EncryptableUint16,
   uint32: (data: EncryptableUint32["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.uint32 }) as EncryptableUint32,
+    ({ data, securityZone, utype: FheTypes.Uint32 }) as EncryptableUint32,
   uint64: (data: EncryptableUint64["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.uint64 }) as EncryptableUint64,
+    ({ data, securityZone, utype: FheTypes.Uint64 }) as EncryptableUint64,
   uint128: (data: EncryptableUint128["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.uint128 }) as EncryptableUint128,
+    ({ data, securityZone, utype: FheTypes.Uint128 }) as EncryptableUint128,
   uint256: (data: EncryptableUint256["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.uint256 }) as EncryptableUint256,
-  address: (data: EncryptableAddress["data"], securityZone = 0) =>
-    ({ data, securityZone, utype: FheUType.address }) as EncryptableAddress,
+    ({ data, securityZone, utype: FheTypes.Uint256 }) as EncryptableUint256,
 } as const;
 
 export type EncryptableItem =
@@ -79,8 +72,7 @@ export type EncryptableItem =
   | EncryptableUint32
   | EncryptableUint64
   | EncryptableUint128
-  | EncryptableUint256
-  | EncryptableAddress;
+  | EncryptableUint256;
 
 // COFHE Encrypt
 export type CoFheEncryptedItemMap<E extends EncryptableItem> =
@@ -98,19 +90,25 @@ export type CoFheEncryptedItemMap<E extends EncryptableItem> =
               ? CoFheEncryptedUint128
               : E extends EncryptableUint256
                 ? CoFheEncryptedUint256
-                : E extends EncryptableAddress
-                  ? CoFheEncryptedAddress
-                  : never;
+                : never;
 
-export type MappedCoFheEncryptedTypes<T> = T extends "permission"
-  ? PermissionV2
-  : T extends Primitive
-    ? LiteralToPrimitive<T>
-    : T extends EncryptableItem
-      ? CoFheEncryptedItemMap<T>
-      : {
-          [K in keyof T]: MappedCoFheEncryptedTypes<T[K]>;
-        };
+// export type MappedCoFheEncryptedTypes<T> = T extends "permission"
+//   ? PermissionV2
+//   : T extends Primitive
+//     ? LiteralToPrimitive<T>
+//     : T extends EncryptableItem
+//       ? CoFheEncryptedItemMap<T>
+//       : {
+//           [K in keyof T]: MappedCoFheEncryptedTypes<T[K]>;
+//         };
+
+export type MappedCoFheEncryptedTypes<T> = T extends Primitive
+  ? LiteralToPrimitive<T>
+  : T extends EncryptableItem
+    ? CoFheEncryptedItemMap<T>
+    : {
+        [K in keyof T]: MappedCoFheEncryptedTypes<T[K]>;
+      };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isEncryptableItem(value: any): value is EncryptableItem {
