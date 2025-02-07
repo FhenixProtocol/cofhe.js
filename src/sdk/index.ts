@@ -35,6 +35,7 @@ import {
   InitializationParams,
   EncryptableItem,
 } from "../types";
+import { zkPack, zkProve } from "./zkPoK";
 
 /**
  * Initializes the `fhenixsdk` to enable encrypting input data, creating permits / permissions, and decrypting sealed outputs.
@@ -395,276 +396,151 @@ async function prepareInputs<T>(item: T) {
     signer: false,
   });
   if (!initialized.success)
-    return ResultErr(`${encrypt.name} :: ${initialized.error}`);
+    return ResultErr(`prepareInputs :: ${initialized.error}`);
 
-  // EncryptableItem
-  if (isEncryptableItem(item)) {
-    // Early exit with mock encrypted value if chain is hardhat
-    // TODO: Determine how CoFHE encrypted items will be handled in hardhat
-    if (chainIsHardhat(state.coFheUrl))
-      return ResultOk(hardhatMockEncrypt(BigInt(item.data)));
+  if (state.account == null)
+    return ResultErr("prepareInputs :: account uninitialized");
 
-    const fhePublicKey = _store_getConnectedChainFheKey(item.securityZone ?? 0);
-    if (fhePublicKey == null)
-      return ResultErr("encrypt :: fheKey for current chain not found");
+  const fhePublicKey = _store_getConnectedChainFheKey(0);
+  if (fhePublicKey == null)
+    return ResultErr("prepareInputs :: fheKey for current chain not found");
 
-    let preEncryptedItem;
+  const encryptableItems = extractEncryptables(item);
 
-    // prettier-ignore
-    try {
-      switch (item.utype) {
-        case FheUType.bool: {
-          preEncryptedItem = tfhe_encrypt_bool(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint8: {
-          preEncryptedItem = tfhe_encrypt_uint8(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint16: {
-          preEncryptedItem = tfhe_encrypt_uint16(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint32: {
-          preEncryptedItem = tfhe_encrypt_uint32(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint64: {
-          preEncryptedItem = tfhe_encrypt_uint64(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint128: {
-          preEncryptedItem = tfhe_encrypt_uint128(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint256: {
-          preEncryptedItem = tfhe_encrypt_uint256(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.address: {
-          preEncryptedItem = tfhe_encrypt_address(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-      }
-    } catch (e) {
-      return ResultErr(`encrypt :: tfhe_encrypt_xxxx :: ${e}`)
-    }
+  const builder = zkPack(encryptableItems, fhePublicKey);
+  const proved = await zkProve(builder, state.account);
+  const inItems: CoFheInItem[] = await zkCoFHEVerify(proved);
 
-    // Send preEncryptedItem to CoFHE route `/UpdateCT`, receive `ctHash` to use as contract input
-    const res = (await fetch(`${state.coFheUrl}/UpdateCT`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json", // Ensure the server knows you're sending JSON
-      },
-      body: JSON.stringify({
-        UType: item.utype,
-        Value: toHexString(preEncryptedItem.data),
-        SecurityZone: item.securityZone,
-      }),
-    })) as any;
+  const [itemWithInItems, remainingInItems] = replaceEncryptables(
+    item,
+    inItems,
+  );
 
-    const data = await res.json();
+  if (remainingInItems != null)
+    return ResultErr(
+      "prepareInputs :: some encrypted inputs remaining after replacement",
+    );
 
-    // Transform data into final CoFHE input variable
-    return ResultOk({
-      securityZone: item.securityZone,
-      hash: BigInt(`0x${data.ctHash}`),
-      utype: item.utype,
-      signature: data.signature,
-    } as CoFheInItem);
-  }
+  return itemWithInItems;
 
-  // Object | Array
-  if (typeof item === "object" && item !== null) {
-    if (Array.isArray(item)) {
-      // Array - recurse
-      const nestedItems = await Promise.all(
-        item.map((nestedItem) => encrypt(nestedItem)),
-      );
+  // // EncryptableItem
+  // if (isEncryptableItem(item)) {
+  //   // Early exit with mock encrypted value if chain is hardhat
+  //   // TODO: Determine how CoFHE encrypted items will be handled in hardhat
+  //   if (chainIsHardhat(state.coFheUrl))
+  //     return ResultOk(hardhatMockEncrypt(BigInt(item.data)));
 
-      // Any nested error break out
-      const nestedItemResultErr = nestedItems.find(
-        (nestedItem) => !nestedItem.success,
-      );
-      if (nestedItemResultErr != null) return nestedItemResultErr;
+  //   const fhePublicKey = _store_getConnectedChainFheKey(item.securityZone ?? 0);
+  //   if (fhePublicKey == null)
+  //     return ResultErr("encrypt :: fheKey for current chain not found");
 
-      return ResultOk(nestedItems.map((nestedItem) => nestedItem.data));
-    } else {
-      // Object - recurse
-      const nestedKeyedItems = await Promise.all(
-        Object.entries(item).map(async ([key, value]) => ({
-          key,
-          value: await encrypt(value),
-        })),
-      );
+  //   let preEncryptedItem;
 
-      // Any nested error break out
-      const nestedItemResultErr = nestedKeyedItems.find(
-        ({ value }) => !value.success,
-      );
-      if (nestedItemResultErr != null) return nestedItemResultErr;
+  //   // prettier-ignore
+  //   try {
+  //     switch (item.utype) {
+  //       case FheUType.bool: {
+  //         preEncryptedItem = tfhe_encrypt_bool(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //       case FheUType.uint8: {
+  //         preEncryptedItem = tfhe_encrypt_uint8(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //       case FheUType.uint16: {
+  //         preEncryptedItem = tfhe_encrypt_uint16(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //       case FheUType.uint32: {
+  //         preEncryptedItem = tfhe_encrypt_uint32(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //       case FheUType.uint64: {
+  //         preEncryptedItem = tfhe_encrypt_uint64(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //       case FheUType.uint128: {
+  //         preEncryptedItem = tfhe_encrypt_uint128(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //       case FheUType.uint256: {
+  //         preEncryptedItem = tfhe_encrypt_uint256(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //       case FheUType.address: {
+  //         preEncryptedItem = tfhe_encrypt_address(item.data, fhePublicKey, item.securityZone);
+  //         break;
+  //       }
+  //     }
+  //   } catch (e) {
+  //     return ResultErr(`encrypt :: tfhe_encrypt_xxxx :: ${e}`)
+  //   }
 
-      const result: Record<string, any> = {};
-      nestedKeyedItems.forEach(({ key, value }) => {
-        result[key] = value.data;
-      });
+  //   // Send preEncryptedItem to CoFHE route `/UpdateCT`, receive `ctHash` to use as contract input
+  //   const res = (await fetch(`${state.coFheUrl}/UpdateCT`, {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json", // Ensure the server knows you're sending JSON
+  //     },
+  //     body: JSON.stringify({
+  //       UType: item.utype,
+  //       Value: toHexString(preEncryptedItem.data),
+  //       SecurityZone: item.securityZone,
+  //     }),
+  //   })) as any;
 
-      return ResultOk(result);
-    }
-  }
+  //   const data = await res.json();
 
-  // Primitive
-  return ResultOk(item);
-}
+  //   // Transform data into final CoFHE input variable
+  //   return ResultOk({
+  //     securityZone: item.securityZone,
+  //     hash: BigInt(`0x${data.ctHash}`),
+  //     utype: item.utype,
+  //     signature: data.signature,
+  //   } as CoFheInItem);
+  // }
 
-/**
- * Encrypts a numeric value according to the specified encryption type or the most efficient one based on the value.
- * Useful when not using `Encryptable` utility structures.
- * @param {item} value - The numeric value to encrypt.
- * @param {EncryptionTypes} type - Optional. The encryption type (uint8, uint16, uint32).
- * @param securityZone - The security zone for which to encrypt the value (default 0).
- * @returns {EncryptedNumber} - The encrypted value serialized as Uint8Array. Use the .data property to access the Uint8Array.
- */
-async function encrypt<T>(
-  item: T,
-): Promise<Result<MappedCoFheEncryptedTypes<T>>>;
-async function encrypt<T extends any[]>(
-  item: [...T],
-): Promise<Result<[...MappedCoFheEncryptedTypes<T>]>>;
-async function encrypt<T>(item: T) {
-  const state = _sdkStore.getState();
+  // // Object | Array
+  // if (typeof item === "object" && item !== null) {
+  //   if (Array.isArray(item)) {
+  //     // Array - recurse
+  //     const nestedItems = await Promise.all(
+  //       item.map((nestedItem) => encrypt(nestedItem)),
+  //     );
 
-  // Only need to check `fheKeysInitialized`, signer and provider not needed for encryption
-  const initialized = _checkInitialized(state, {
-    provider: false,
-    signer: false,
-  });
-  if (!initialized.success)
-    return ResultErr(`${encrypt.name} :: ${initialized.error}`);
+  //     // Any nested error break out
+  //     const nestedItemResultErr = nestedItems.find(
+  //       (nestedItem) => !nestedItem.success,
+  //     );
+  //     if (nestedItemResultErr != null) return nestedItemResultErr;
 
-  // Permission
-  if (item === "permission") {
-    return getPermission();
-  }
+  //     return ResultOk(nestedItems.map((nestedItem) => nestedItem.data));
+  //   } else {
+  //     // Object - recurse
+  //     const nestedKeyedItems = await Promise.all(
+  //       Object.entries(item).map(async ([key, value]) => ({
+  //         key,
+  //         value: await encrypt(value),
+  //       })),
+  //     );
 
-  // EncryptableItem
-  if (isEncryptableItem(item)) {
-    // Early exit with mock encrypted value if chain is hardhat
-    // TODO: Determine how CoFHE encrypted items will be handled in hardhat
-    if (chainIsHardhat(state.coFheUrl))
-      return ResultOk(hardhatMockEncrypt(BigInt(item.data)));
+  //     // Any nested error break out
+  //     const nestedItemResultErr = nestedKeyedItems.find(
+  //       ({ value }) => !value.success,
+  //     );
+  //     if (nestedItemResultErr != null) return nestedItemResultErr;
 
-    const fhePublicKey = _store_getConnectedChainFheKey(item.securityZone ?? 0);
-    if (fhePublicKey == null)
-      return ResultErr("encrypt :: fheKey for current chain not found");
+  //     const result: Record<string, any> = {};
+  //     nestedKeyedItems.forEach(({ key, value }) => {
+  //       result[key] = value.data;
+  //     });
 
-    let preEncryptedItem;
+  //     return ResultOk(result);
+  //   }
+  // }
 
-    // prettier-ignore
-    try {
-      switch (item.utype) {
-        case FheUType.bool: {
-          preEncryptedItem = tfhe_encrypt_bool(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint8: {
-          preEncryptedItem = tfhe_encrypt_uint8(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint16: {
-          preEncryptedItem = tfhe_encrypt_uint16(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint32: {
-          preEncryptedItem = tfhe_encrypt_uint32(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint64: {
-          preEncryptedItem = tfhe_encrypt_uint64(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint128: {
-          preEncryptedItem = tfhe_encrypt_uint128(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.uint256: {
-          preEncryptedItem = tfhe_encrypt_uint256(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-        case FheUType.address: {
-          preEncryptedItem = tfhe_encrypt_address(item.data, fhePublicKey, item.securityZone);
-          break;
-        }
-      }
-    } catch (e) {
-      return ResultErr(`encrypt :: tfhe_encrypt_xxxx :: ${e}`)
-    }
-
-    // Send preEncryptedItem to CoFHE route `/UpdateCT`, receive `ctHash` to use as contract input
-    const res = (await fetch(`${state.coFheUrl}/UpdateCT`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json", // Ensure the server knows you're sending JSON
-      },
-      body: JSON.stringify({
-        UType: item.utype,
-        Value: toHexString(preEncryptedItem.data),
-        SecurityZone: item.securityZone,
-      }),
-    })) as any;
-
-    const data = await res.json();
-
-    // Transform data into final CoFHE input variable
-    return ResultOk({
-      securityZone: item.securityZone,
-      hash: BigInt(`0x${data.ctHash}`),
-      utype: item.utype,
-      signature: data.signature,
-    } as CoFheInItem);
-  }
-
-  // Object | Array
-  if (typeof item === "object" && item !== null) {
-    if (Array.isArray(item)) {
-      // Array - recurse
-      const nestedItems = await Promise.all(
-        item.map((nestedItem) => encrypt(nestedItem)),
-      );
-
-      // Any nested error break out
-      const nestedItemResultErr = nestedItems.find(
-        (nestedItem) => !nestedItem.success,
-      );
-      if (nestedItemResultErr != null) return nestedItemResultErr;
-
-      return ResultOk(nestedItems.map((nestedItem) => nestedItem.data));
-    } else {
-      // Object - recurse
-      const nestedKeyedItems = await Promise.all(
-        Object.entries(item).map(async ([key, value]) => ({
-          key,
-          value: await encrypt(value),
-        })),
-      );
-
-      // Any nested error break out
-      const nestedItemResultErr = nestedKeyedItems.find(
-        ({ value }) => !value.success,
-      );
-      if (nestedItemResultErr != null) return nestedItemResultErr;
-
-      const result: Record<string, any> = {};
-      nestedKeyedItems.forEach(({ key, value }) => {
-        result[key] = value.data;
-      });
-
-      return ResultOk(result);
-    }
-  }
-
-  // Primitive
-  return ResultOk(item);
+  // // Primitive
+  // return ResultOk(item);
 }
 
 // Unseal
@@ -766,7 +642,7 @@ export const fhenixsdk = {
   getPermission,
   getAllPermits,
 
-  encrypt,
+  prepareInputs,
 
   unsealCiphertext,
   unseal,
