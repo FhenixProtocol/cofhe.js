@@ -26,6 +26,7 @@ import {
   Result,
 } from "../src/types";
 import { FheTypes } from "tfhe";
+import { createTfhePublicKey } from "../src/types/keygen";
 
 describe("Sdk Tests", () => {
   let bobPublicKey: string;

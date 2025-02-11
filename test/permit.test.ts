@@ -12,6 +12,8 @@ import { getAddress, ZeroAddress } from "ethers";
 import { Permit } from "../src/sdk/permit";
 import { SealingKey } from "../src/sdk/sealing";
 import { SealedBool, SealedUint, SealedAddress } from "../src/types";
+import { createTfhePublicKey } from "../src/types/keygen";
+import { FheTypes } from "tfhe";
 
 describe("Permit Tests", () => {
   let bobPublicKey: string;
@@ -253,7 +255,7 @@ describe("Permit Tests", () => {
     const boolValue = true;
     const boolCipherStruct: SealedBool = {
       data: SealingKey.seal(boolValue ? 1 : 0, permit.sealingPair.publicKey),
-      utype: 13,
+      utype: FheTypes.Bool,
     };
     const boolCleartext = permit.unseal(boolCipherStruct);
     expect(boolCleartext).to.eq(boolValue);
@@ -262,7 +264,7 @@ describe("Permit Tests", () => {
     const uintValue = 937387n;
     const uintCipherStruct: SealedUint = {
       data: SealingKey.seal(uintValue, permit.sealingPair.publicKey),
-      utype: 4,
+      utype: FheTypes.Uint64,
     };
     const uintCleartext = permit.unseal(uintCipherStruct);
     expect(uintCleartext).to.eq(uintValue);
@@ -271,7 +273,7 @@ describe("Permit Tests", () => {
     const addressValue = contractAddress;
     const addressCipherStruct: SealedAddress = {
       data: SealingKey.seal(BigInt(addressValue), permit.sealingPair.publicKey),
-      utype: 12,
+      utype: FheTypes.Uint160,
     };
     const addressCleartext = permit.unseal(addressCipherStruct);
     expect(addressCleartext).to.eq(addressValue);
