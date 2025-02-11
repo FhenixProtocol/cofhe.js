@@ -2,49 +2,47 @@ import { Primitive, LiteralToPrimitive } from "type-fest";
 import { FheAllUTypes } from "./base";
 import {
   CoFheInBool,
-  CoFheEncryptedUint8,
+  CoFheInUint8,
   CoFheInUint16,
   CoFheInUint32,
   CoFheInUint64,
   CoFheInUint128,
   CoFheInUint256,
+  CoFheInAddress,
 } from "./encrypted";
 import { FheTypes } from "tfhe";
 
 export type EncryptableBool = {
   data: boolean;
-  securityZone?: number;
   utype: FheTypes.Bool;
 };
 export type EncryptableUint8 = {
   data: string | bigint;
-  securityZone?: number;
   utype: FheTypes.Uint8;
 };
 export type EncryptableUint16 = {
   data: string | bigint;
-  securityZone?: number;
   utype: FheTypes.Uint16;
 };
 export type EncryptableUint32 = {
   data: string | bigint;
-  securityZone?: number;
   utype: FheTypes.Uint32;
 };
 export type EncryptableUint64 = {
   data: string | bigint;
-  securityZone?: number;
   utype: FheTypes.Uint64;
 };
 export type EncryptableUint128 = {
   data: string | bigint;
-  securityZone?: number;
   utype: FheTypes.Uint128;
 };
 export type EncryptableUint256 = {
   data: string | bigint;
-  securityZone?: number;
   utype: FheTypes.Uint256;
+};
+export type EncryptableAddress = {
+  data: string | bigint;
+  utype: FheTypes.Uint160;
 };
 
 export const Encryptable = {
@@ -71,14 +69,15 @@ export type EncryptableItem =
   | EncryptableUint32
   | EncryptableUint64
   | EncryptableUint128
-  | EncryptableUint256;
+  | EncryptableUint256
+  | EncryptableAddress;
 
 // COFHE Encrypt
-export type CoFheEncryptedItemMap<E extends EncryptableItem> =
+export type Encryptable_CoFheInItem_Map<E extends EncryptableItem> =
   E extends EncryptableBool
     ? CoFheInBool
     : E extends EncryptableUint8
-      ? CoFheEncryptedUint8
+      ? CoFheInUint8
       : E extends EncryptableUint16
         ? CoFheInUint16
         : E extends EncryptableUint32
@@ -89,24 +88,16 @@ export type CoFheEncryptedItemMap<E extends EncryptableItem> =
               ? CoFheInUint128
               : E extends EncryptableUint256
                 ? CoFheInUint256
-                : never;
+                : E extends EncryptableAddress
+                  ? CoFheInAddress
+                  : never;
 
-// export type MappedCoFheEncryptedTypes<T> = T extends "permission"
-//   ? PermissionV2
-//   : T extends Primitive
-//     ? LiteralToPrimitive<T>
-//     : T extends EncryptableItem
-//       ? CoFheEncryptedItemMap<T>
-//       : {
-//           [K in keyof T]: MappedCoFheEncryptedTypes<T[K]>;
-//         };
-
-export type MappedCoFheEncryptedTypes<T> = T extends Primitive
+export type Mapped_Encryptable_CoFheInItem<T> = T extends Primitive
   ? LiteralToPrimitive<T>
   : T extends EncryptableItem
-    ? CoFheEncryptedItemMap<T>
+    ? Encryptable_CoFheInItem_Map<T>
     : {
-        [K in keyof T]: MappedCoFheEncryptedTypes<T[K]>;
+        [K in keyof T]: Mapped_Encryptable_CoFheInItem<T[K]>;
       };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

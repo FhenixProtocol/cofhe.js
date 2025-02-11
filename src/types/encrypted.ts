@@ -43,3 +43,6 @@ export type CoFheInUint128 = CoFheInItem & {
 export type CoFheInUint256 = CoFheInItem & {
   utype: FheTypes.Uint256;
 };
+export type CoFheInAddress = CoFheInItem & {
+  utype: FheTypes.Uint160;
+};

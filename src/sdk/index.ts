@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { toHexString } from "./utils";
-import { chainIsHardhat, hardhatMockEncrypt } from "./utils.hardhat";
 import { PermitV2, permitStore, PermitV2ParamsValidator } from "./permit";
 import { isString } from "./validation";
 import {
@@ -9,21 +7,10 @@ import {
   _store_initialize,
   SdkStore,
 } from "./store";
-import {
-  encrypt_bool as tfhe_encrypt_bool,
-  encrypt_uint8 as tfhe_encrypt_uint8,
-  encrypt_uint16 as tfhe_encrypt_uint16,
-  encrypt_uint32 as tfhe_encrypt_uint32,
-  encrypt_uint64 as tfhe_encrypt_uint64,
-  encrypt_uint128 as tfhe_encrypt_uint128,
-  encrypt_uint256 as tfhe_encrypt_uint256,
-  encrypt_address as tfhe_encrypt_address,
-} from "./encrypt";
 import { initTfhe } from "./init";
 import {
   CoFheInItem,
-  FheUType,
-  MappedCoFheEncryptedTypes,
+  Mapped_Encryptable_CoFheInItem,
   isEncryptableItem,
   PermitV2Options,
   PermitV2Interface,
@@ -35,7 +22,7 @@ import {
   InitializationParams,
   EncryptableItem,
 } from "../types";
-import { zkPack, zkProve } from "./zkPoK";
+import { zkPack, zkProve, zkVerify } from "./zkPoK";
 
 /**
  * Initializes the `fhenixsdk` to enable encrypting input data, creating permits / permissions, and decrypting sealed outputs.
@@ -342,11 +329,11 @@ function extractEncryptables<T>(item: T) {
 function replaceEncryptables<T>(
   item: T,
   encryptedItems: CoFheInItem[],
-): [MappedCoFheEncryptedTypes<T>, CoFheInItem[]];
+): [Mapped_Encryptable_CoFheInItem<T>, CoFheInItem[]];
 function replaceEncryptables<T extends any[]>(
   item: [...T],
   encryptedItems: CoFheInItem[],
-): [...MappedCoFheEncryptedTypes<T>, CoFheInItem[]];
+): [...Mapped_Encryptable_CoFheInItem<T>, CoFheInItem[]];
 function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
   if (isEncryptableItem(item)) {
     return [encryptedItems[0], encryptedItems.slice(1)];
@@ -383,10 +370,10 @@ function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
 
 async function prepareInputs<T>(
   item: T,
-): Promise<Result<MappedCoFheEncryptedTypes<T>>>;
+): Promise<Result<Mapped_Encryptable_CoFheInItem<T>>>;
 async function prepareInputs<T extends any[]>(
   item: [...T],
-): Promise<Result<[...MappedCoFheEncryptedTypes<T>]>>;
+): Promise<Result<[...Mapped_Encryptable_CoFheInItem<T>]>>;
 async function prepareInputs<T>(item: T) {
   const state = _sdkStore.getState();
 
@@ -405,11 +392,22 @@ async function prepareInputs<T>(item: T) {
   if (fhePublicKey == null)
     return ResultErr("prepareInputs :: fheKey for current chain not found");
 
+  const coFheUrl = state.coFheUrl;
+  if (coFheUrl == null)
+    return ResultErr("prepareInputs :: coFheUrl not initialized");
+
   const encryptableItems = extractEncryptables(item);
 
   const builder = zkPack(encryptableItems, fhePublicKey);
   const proved = await zkProve(builder, state.account);
-  const inItems: CoFheInItem[] = await zkCoFHEVerify(proved);
+  const zkVerifyRes = await zkVerify(coFheUrl, proved);
+
+  if (!zkVerifyRes.ok)
+    return ResultErr(
+      `prepareInputs :: ZK proof verification failed - ${await zkVerifyRes.text()}`,
+    );
+
+  const inItems: CoFheInItem[] = await zkVerifyRes.json();
 
   const [itemWithInItems, remainingInItems] = replaceEncryptables(
     item,
@@ -421,126 +419,7 @@ async function prepareInputs<T>(item: T) {
       "prepareInputs :: some encrypted inputs remaining after replacement",
     );
 
-  return itemWithInItems;
-
-  // // EncryptableItem
-  // if (isEncryptableItem(item)) {
-  //   // Early exit with mock encrypted value if chain is hardhat
-  //   // TODO: Determine how CoFHE encrypted items will be handled in hardhat
-  //   if (chainIsHardhat(state.coFheUrl))
-  //     return ResultOk(hardhatMockEncrypt(BigInt(item.data)));
-
-  //   const fhePublicKey = _store_getConnectedChainFheKey(item.securityZone ?? 0);
-  //   if (fhePublicKey == null)
-  //     return ResultErr("encrypt :: fheKey for current chain not found");
-
-  //   let preEncryptedItem;
-
-  //   // prettier-ignore
-  //   try {
-  //     switch (item.utype) {
-  //       case FheUType.bool: {
-  //         preEncryptedItem = tfhe_encrypt_bool(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //       case FheUType.uint8: {
-  //         preEncryptedItem = tfhe_encrypt_uint8(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //       case FheUType.uint16: {
-  //         preEncryptedItem = tfhe_encrypt_uint16(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //       case FheUType.uint32: {
-  //         preEncryptedItem = tfhe_encrypt_uint32(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //       case FheUType.uint64: {
-  //         preEncryptedItem = tfhe_encrypt_uint64(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //       case FheUType.uint128: {
-  //         preEncryptedItem = tfhe_encrypt_uint128(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //       case FheUType.uint256: {
-  //         preEncryptedItem = tfhe_encrypt_uint256(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //       case FheUType.address: {
-  //         preEncryptedItem = tfhe_encrypt_address(item.data, fhePublicKey, item.securityZone);
-  //         break;
-  //       }
-  //     }
-  //   } catch (e) {
-  //     return ResultErr(`encrypt :: tfhe_encrypt_xxxx :: ${e}`)
-  //   }
-
-  //   // Send preEncryptedItem to CoFHE route `/UpdateCT`, receive `ctHash` to use as contract input
-  //   const res = (await fetch(`${state.coFheUrl}/UpdateCT`, {
-  //     method: "POST",
-  //     headers: {
-  //       "Content-Type": "application/json", // Ensure the server knows you're sending JSON
-  //     },
-  //     body: JSON.stringify({
-  //       UType: item.utype,
-  //       Value: toHexString(preEncryptedItem.data),
-  //       SecurityZone: item.securityZone,
-  //     }),
-  //   })) as any;
-
-  //   const data = await res.json();
-
-  //   // Transform data into final CoFHE input variable
-  //   return ResultOk({
-  //     securityZone: item.securityZone,
-  //     hash: BigInt(`0x${data.ctHash}`),
-  //     utype: item.utype,
-  //     signature: data.signature,
-  //   } as CoFheInItem);
-  // }
-
-  // // Object | Array
-  // if (typeof item === "object" && item !== null) {
-  //   if (Array.isArray(item)) {
-  //     // Array - recurse
-  //     const nestedItems = await Promise.all(
-  //       item.map((nestedItem) => encrypt(nestedItem)),
-  //     );
-
-  //     // Any nested error break out
-  //     const nestedItemResultErr = nestedItems.find(
-  //       (nestedItem) => !nestedItem.success,
-  //     );
-  //     if (nestedItemResultErr != null) return nestedItemResultErr;
-
-  //     return ResultOk(nestedItems.map((nestedItem) => nestedItem.data));
-  //   } else {
-  //     // Object - recurse
-  //     const nestedKeyedItems = await Promise.all(
-  //       Object.entries(item).map(async ([key, value]) => ({
-  //         key,
-  //         value: await encrypt(value),
-  //       })),
-  //     );
-
-  //     // Any nested error break out
-  //     const nestedItemResultErr = nestedKeyedItems.find(
-  //       ({ value }) => !value.success,
-  //     );
-  //     if (nestedItemResultErr != null) return nestedItemResultErr;
-
-  //     const result: Record<string, any> = {};
-  //     nestedKeyedItems.forEach(({ key, value }) => {
-  //       result[key] = value.data;
-  //     });
-
-  //     return ResultOk(result);
-  //   }
-  // }
-
-  // // Primitive
-  // return ResultOk(item);
+  return ResultOk(itemWithInItems);
 }
 
 // Unseal
