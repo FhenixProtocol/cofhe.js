@@ -91,12 +91,16 @@ export const zkPack = (
 export const zkProve = async (
   builder: CompactCiphertextListBuilder,
   address: string,
+  securityZone: number,
 ): Promise<ProvenCompactCiphertextList> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       const compactList = builder.build_with_proof_packed(
         crs,
-        recordToUint8Array({ address }),
+        recordToUint8Array({
+          account_address: address,
+          security_zone: securityZone,
+        }),
         ZkComputeLoad.Verify,
       );
       resolve(compactList);

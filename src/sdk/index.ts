@@ -370,11 +370,13 @@ function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
 
 async function prepareInputs<T>(
   item: T,
+  securityZone: number,
 ): Promise<Result<Mapped_Encryptable_CoFheInItem<T>>>;
 async function prepareInputs<T extends any[]>(
   item: [...T],
+  securityZone: number,
 ): Promise<Result<[...Mapped_Encryptable_CoFheInItem<T>]>>;
-async function prepareInputs<T>(item: T) {
+async function prepareInputs<T>(item: T, securityZone: number) {
   const state = _sdkStore.getState();
 
   // Only need to check `fheKeysInitialized`, signer and provider not needed for encryption
@@ -399,7 +401,7 @@ async function prepareInputs<T>(item: T) {
   const encryptableItems = extractEncryptables(item);
 
   const builder = zkPack(encryptableItems, fhePublicKey);
-  const proved = await zkProve(builder, state.account);
+  const proved = await zkProve(builder, state.account, securityZone);
   const zkVerifyRes = await zkVerify(coFheUrl, proved);
 
   if (!zkVerifyRes.ok)
