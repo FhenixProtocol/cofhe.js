@@ -117,7 +117,7 @@ Completely untested. Maybe yes, maybe no, maybe both.
 
 ## fhenix.js sdk
 
-`fhenixsdk` is designed to make interacting with FHE enabled blockchains typesafe and as streamlined as possible by providing utility functions for inputs, permits (permissions), and outputs. The sdk is an opinionated implementation of the underling `PermitV2` class, therefor if the sdk is too limiting for your use case (e.g. multiple active users), you can easily drop down into the core `PermitV2` class to extend its functionality.
+`fhenixsdk` is designed to make interacting with FHE enabled blockchains typesafe and as streamlined as possible by providing utility functions for inputs, permits (permissions), and outputs. The sdk is an opinionated implementation of the underling `Permit` class, therefor if the sdk is too limiting for your use case (e.g. multiple active users), you can easily drop down into the core `Permit` class to extend its functionality.
 
 NOTE: `fhenixsdk` is still in beta, and while we will try to avoid it, we may release breaking changes in the future if necessary.
 
@@ -165,14 +165,14 @@ const permission = permit.getPermission()
 which can then be used as an argument for a solidity function:
 ```solidity
 function getCounterPermitSealed(
-  PermissionV2 memory permission
+  Permission memory permission
 ) public view withPermission(permission) returns (SealedUint memory) {
   return FHE.sealoutputTyped(userCounter[permission.issuer], permission.sealingKey);
 }
 ```
 NOTE: We will return to this `SealedUint` output struct in the "Output data" section below.
 
-You can read more about how Permits enable Fhenix to privately fetch encrypted data from on-chain by taking a look at our [docs](https://docs.fhenix.zone/docs/devdocs/FhenixJS/Permits) or the [`PermissionedV2.sol` contract](https://github.com/FhenixProtocol/fhenix-contracts/blob/main/contracts/access/PermissionedV2.sol).
+You can read more about how Permits enable Fhenix to privately fetch encrypted data from on-chain by taking a look at our [docs](https://docs.fhenix.zone/docs/devdocs/FhenixJS/Permits) or the [`Permissioned.sol` contract](https://github.com/FhenixProtocol/fhenix-contracts/blob/main/contracts/access/Permissioned.sol).
 
 
 ### Input data
@@ -196,13 +196,13 @@ const encryptedArgs = client.encrypt(encryptableValue)
 These args can now be sent to the contract. `.encrypt` will also replace `"permission"` with the user's currently active permit `permission` referenced above. It will also recursively encrypt any nested input data (`[...]` / `{...}`):
 ```typescript
 const encrypted = client.encrypt(
-  "permission", // <== Will be replaced by the user's active `PermitV2.getPermission()`
+  "permission", // <== Will be replaced by the user's active `Permit.getPermission()`
   Encryptable.uint8(5),
   [Encryptable.uint128("50"), Encryptable.bool(true)],
   50n,
   "hello"
 )
-// typeof encrypted - [PermissionV2, EncryptedUint8, [EncryptedUint128, EncryptedBool], bigint, string]
+// typeof encrypted - [Permission, EncryptedUint8, [EncryptedUint128, EncryptedBool], bigint, string]
 ```
 
 ### Output data (sealed)
@@ -210,7 +210,7 @@ Encrypted data is sealed before it is returned to the users, at which point it c
 
 A function with the following return type:
 ```solidity
-function getSealedData(PermissionedV2 memory permission) view returns (uint256, string memory, SealedUint memory, SealedUint memory, SealedBool memory);
+function getSealedData(Permissioned memory permission) view returns (uint256, string memory, SealedUint memory, SealedUint memory, SealedBool memory);
 ```
 
 can be unsealed with `fhenixsdk`:
@@ -230,7 +230,7 @@ As with `fhenixsdk.encrypt` above, `unseal` will also recursively unseal any nes
 
 ## `FhenixClient` and `FhenixClientSync`
 
-`FhenixClient` uses the legacy Permission system (V1), it is recommended to migrate to `fhenixsdk` and `PermitV2`s above.
+`FhenixClient` uses the legacy Permission system (V1), it is recommended to migrate to `fhenixsdk` and `Permit`s above.
 
 ### Usage
 

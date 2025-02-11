@@ -8,7 +8,7 @@ import {
   AbstractProvider,
   AbstractSigner,
   InitializationParams,
-  PermitV2AccessRequirements,
+  PermitAccessRequirements,
 } from "../types";
 import { TfheCompressedPublicKey } from "tfhe";
 
@@ -48,7 +48,7 @@ export type SdkStore = SdkStoreProviderInitialization &
 
     securityZones: number[];
     fheKeys: ChainRecord<SecurityZoneRecord<Uint8Array | undefined>>;
-    accessRequirements: PermitV2AccessRequirements;
+    accessRequirements: PermitAccessRequirements;
 
     coFheUrl: string | undefined;
   };
@@ -123,14 +123,7 @@ export const _store_setFheKey = (
 const getChainIdFromProvider = async (
   provider: AbstractProvider,
 ): Promise<string> => {
-  let chainId: string | null = null;
-  try {
-    chainId = await provider.getChainId();
-  } catch (err) {
-    const network = await provider.getNetwork();
-    chainId = network.chainId;
-  }
-
+  const chainId = await provider.getChainId();
   if (chainId == null)
     throw new Error(
       "sdk :: getChainIdFromProvider :: provider.getChainId returned a null result, ensure that your provider is connected to a network",

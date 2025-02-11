@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PermitV2, permitStore, PermitV2ParamsValidator } from "./permit";
+import { Permit, permitStore, PermitParamsValidator } from "./permit";
 import { isString } from "./validation";
 import {
   _sdkStore,
@@ -10,11 +10,11 @@ import {
 import { initTfhe } from "./init";
 import {
   CoFheInItem,
-  Mapped_Encryptable_CoFheInItem,
+  Prepared_Inputs,
   isEncryptableItem,
-  PermitV2Options,
-  PermitV2Interface,
-  PermissionV2,
+  PermitOptions,
+  PermitInterface,
+  Permission,
   Result,
   ResultErr,
   ResultOk,
@@ -34,7 +34,7 @@ const initialize = async (
     ignoreErrors?: boolean;
     generatePermit?: boolean;
   },
-): Promise<Result<PermitV2 | undefined>> => {
+): Promise<Result<Permit | undefined>> => {
   // Initialize the fhevm
   await initTfhe().catch((err: unknown) => {
     if (params.ignoreErrors) {
@@ -110,23 +110,23 @@ const _checkInitialized = (
 /**
  * Creates a new permit with options, prompts user for signature.
  * Handles all `permit.type`s, and prompts for the correct signature type.
- * The created PermitV2 will be inserted into the store and marked as the active permit.
- * NOTE: This is a wrapper around `PermitV2.create` and `PermitV2.sign`
+ * The created Permit will be inserted into the store and marked as the active permit.
+ * NOTE: This is a wrapper around `Permit.create` and `Permit.sign`
  *
- * @param {PermitV2Options} options - Partial PermitV2 fields to create the Permit with, if no options provided will be filled with the defaults:
+ * @param {PermitOptions} options - Partial Permit fields to create the Permit with, if no options provided will be filled with the defaults:
  * { type: "self", issuer: initializedUserAddress, projects: initializedProjects, contracts: initializedContracts }
- * @returns {Result<PermitV2>} - Newly created PermitV2 as a Result object
+ * @returns {Result<Permit>} - Newly created Permit as a Result object
  */
 const createPermit = async (
-  options?: PermitV2Options,
-): Promise<Result<PermitV2>> => {
+  options?: PermitOptions,
+): Promise<Result<Permit>> => {
   const state = _sdkStore.getState();
 
   const initialized = _checkInitialized(state);
   if (!initialized.success)
     return ResultErr(`${createPermit.name} :: ${initialized.error}`);
 
-  const optionsWithDefaults: PermitV2Options = {
+  const optionsWithDefaults: PermitOptions = {
     type: "self",
     issuer: state.account,
     contracts: state.accessRequirements.contracts,
@@ -134,9 +134,9 @@ const createPermit = async (
     ...options,
   };
 
-  let permit: PermitV2;
+  let permit: Permit;
   try {
-    permit = await PermitV2.createAndSign(
+    permit = await Permit.createAndSign(
       optionsWithDefaults,
       state.chainId,
       state.signer,
@@ -154,14 +154,14 @@ const createPermit = async (
 /**
  * Imports a fully formed existing permit, expected to be valid.
  * Does not ask for user signature, expects to already be populated.
- * Will throw an error if the imported permit is invalid, see `PermitV2.isValid`.
- * The imported PermitV2 will be inserted into the store and marked as the active permit.
+ * Will throw an error if the imported permit is invalid, see `Permit.isValid`.
+ * The imported Permit will be inserted into the store and marked as the active permit.
  *
- * @param {string | PermitV2Interface} imported - Permit to import as a text string or PermitV2Interface
+ * @param {string | PermitInterface} imported - Permit to import as a text string or PermitInterface
  */
 const importPermit = async (
-  imported: string | PermitV2Interface,
-): Promise<Result<PermitV2>> => {
+  imported: string | PermitInterface,
+): Promise<Result<Permit>> => {
   const state = _sdkStore.getState();
 
   const initialized = _checkInitialized(state);
@@ -181,7 +181,7 @@ const importPermit = async (
     success,
     data: parsedPermit,
     error: permitParsingError,
-  } = PermitV2ParamsValidator.safeParse(imported as PermitV2Interface);
+  } = PermitParamsValidator.safeParse(imported as PermitInterface);
   if (!success) {
     const errorString = Object.entries(permitParsingError.flatten().fieldErrors)
       .map(([field, err]) => `- ${field}: ${err}`)
@@ -199,9 +199,9 @@ const importPermit = async (
     }
   }
 
-  let permit: PermitV2;
+  let permit: Permit;
   try {
-    permit = await PermitV2.create(parsedPermit as PermitV2Interface);
+    permit = await Permit.create(parsedPermit as PermitInterface);
   } catch (e) {
     return ResultErr(`importPermit :: ${e}`);
   }
@@ -224,9 +224,9 @@ const importPermit = async (
  * If the hash is not found in the stored permits store, throws an error.
  * The matched permit will be marked as the active permit.
  *
- * @param {string} hash - The `PermitV2.getHash` of the target permit.
+ * @param {string} hash - The `Permit.getHash` of the target permit.
  */
-const selectActivePermit = (hash: string): Result<PermitV2> => {
+const selectActivePermit = (hash: string): Result<Permit> => {
   const state = _sdkStore.getState();
 
   const initialized = _checkInitialized(state);
@@ -248,10 +248,10 @@ const selectActivePermit = (hash: string): Result<PermitV2> => {
  * Retrieves a stored permit based on its hash.
  * If no hash is provided, the currently active permit will be retrieved.
  *
- * @param {string} hash - Optional `PermitV2.getHash` of the permit.
- * @returns {Result<PermitV2>} - The active permit or permit associated with `hash` as a Result object.
+ * @param {string} hash - Optional `Permit.getHash` of the permit.
+ * @returns {Result<Permit>} - The active permit or permit associated with `hash` as a Result object.
  */
-const getPermit = (hash?: string): Result<PermitV2> => {
+const getPermit = (hash?: string): Result<Permit> => {
   const state = _sdkStore.getState();
 
   const initialized = _checkInitialized(state);
@@ -276,12 +276,12 @@ const getPermit = (hash?: string): Result<PermitV2> => {
 /**
  * Retrieves a stored permission based on the permit's hash.
  * If no hash is provided, the currently active permit will be used.
- * The `PermissionV2` is extracted from the permit.
+ * The `Permission` is extracted from the permit.
  *
  * @param {string} hash - Optional hash of the permission to get, defaults to active permit's permission
- * @returns {Result<PermissionV2>} - The active permission or permission associated with `hash`, as a result object.
+ * @returns {Result<Permission>} - The active permission or permission associated with `hash`, as a result object.
  */
-const getPermission = (hash?: string): Result<PermissionV2> => {
+const getPermission = (hash?: string): Result<Permission> => {
   const permitResult = getPermit(hash);
   if (!permitResult.success)
     return ResultErr(`${getPermission.name} :: ${permitResult.error}`);
@@ -291,9 +291,9 @@ const getPermission = (hash?: string): Result<PermissionV2> => {
 
 /**
  * Exports all stored permits.
- * @returns {Result<Record<string, PermitV2>>} - All stored permits.
+ * @returns {Result<Record<string, Permit>>} - All stored permits.
  */
-const getAllPermits = (): Result<Record<string, PermitV2>> => {
+const getAllPermits = (): Result<Record<string, Permit>> => {
   const state = _sdkStore.getState();
 
   const initialized = _checkInitialized(state);
@@ -326,15 +326,22 @@ function extractEncryptables<T>(item: T) {
   return [];
 }
 
-function replaceEncryptables<T>(
+function replaceEncryptablesAndInjectPermission<T>(
   item: T,
   encryptedItems: CoFheInItem[],
-): [Mapped_Encryptable_CoFheInItem<T>, CoFheInItem[]];
-function replaceEncryptables<T extends any[]>(
+): [Prepared_Inputs<T>, CoFheInItem[]];
+function replaceEncryptablesAndInjectPermission<T extends any[]>(
   item: [...T],
   encryptedItems: CoFheInItem[],
-): [...Mapped_Encryptable_CoFheInItem<T>, CoFheInItem[]];
-function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
+): [...Prepared_Inputs<T>, CoFheInItem[]];
+function replaceEncryptablesAndInjectPermission<T>(
+  item: T,
+  encryptedItems: CoFheInItem[],
+) {
+  if (item === "permission") {
+    return getPermission();
+  }
+
   if (isEncryptableItem(item)) {
     return [encryptedItems[0], encryptedItems.slice(1)];
   }
@@ -345,7 +352,8 @@ function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
       // Array - recurse
       return item.reduce<[any[], CoFheInItem[]]>(
         ([acc, remaining], item) => {
-          const [newItem, newRemaining] = replaceEncryptables(item, remaining);
+          const [newItem, newRemaining] =
+            replaceEncryptablesAndInjectPermission(item, remaining);
           return [[...acc, newItem], newRemaining];
         },
         [[], encryptedItems],
@@ -354,10 +362,8 @@ function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
       // Object - recurse
       return Object.entries(item).reduce<[Record<string, any>, CoFheInItem[]]>(
         ([acc, remaining], [key, value]) => {
-          const [newValue, newRemaining] = replaceEncryptables(
-            value,
-            remaining,
-          );
+          const [newValue, newRemaining] =
+            replaceEncryptablesAndInjectPermission(value, remaining);
           return [{ ...acc, [key]: newValue }, newRemaining];
         },
         [{}, encryptedItems],
@@ -370,13 +376,13 @@ function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
 
 async function prepareInputs<T>(
   item: T,
-  securityZone: number,
-): Promise<Result<Mapped_Encryptable_CoFheInItem<T>>>;
+  securityZone?: number,
+): Promise<Result<Prepared_Inputs<T>>>;
 async function prepareInputs<T extends any[]>(
   item: [...T],
-  securityZone: number,
-): Promise<Result<[...Mapped_Encryptable_CoFheInItem<T>]>>;
-async function prepareInputs<T>(item: T, securityZone: number) {
+  securityZone?: number,
+): Promise<Result<[...Prepared_Inputs<T>]>>;
+async function prepareInputs<T>(item: T, securityZone = 0) {
   const state = _sdkStore.getState();
 
   // Only need to check `fheKeysInitialized`, signer and provider not needed for encryption
@@ -411,28 +417,26 @@ async function prepareInputs<T>(item: T, securityZone: number) {
 
   const inItems: CoFheInItem[] = await zkVerifyRes.json();
 
-  const [itemWithInItems, remainingInItems] = replaceEncryptables(
-    item,
-    inItems,
-  );
+  const [preparedInputItems, remainingInItems] =
+    replaceEncryptablesAndInjectPermission(item, inItems);
 
   if (remainingInItems != null)
     return ResultErr(
       "prepareInputs :: some encrypted inputs remaining after replacement",
     );
 
-  return ResultOk(itemWithInItems);
+  return ResultOk(preparedInputItems);
 }
 
 // Unseal
 
 /**
  * Unseals an encrypted message using the stored permit for a specific contract address.
- * NOTE: Wrapper around `PermitV2.unseal`
+ * NOTE: Wrapper around `Permit.unseal`
  *
  * @param {string} ciphertext - The encrypted message to unseal.
  * @param {string} account - Users address, defaults to store.account
- * @param {string} hash - The hash of the permit to use for this operation, defaults to active permitV2 hash
+ * @param {string} hash - The hash of the permit to use for this operation, defaults to active permit hash
  * @returns bigint - The unsealed message.
  */
 const unsealCiphertext = (
@@ -451,14 +455,14 @@ const unsealCiphertext = (
   const resolvedHash = hash ?? permitStore.getActivePermitHash(resolvedAccount);
   if (resolvedAccount == null || resolvedHash == null) {
     return ResultErr(
-      `unsealCiphertext :: PermitV2 hash not provided and active PermitV2 not found`,
+      `unsealCiphertext :: Permit hash not provided and active Permit not found`,
     );
   }
 
   const permit = permitStore.getPermit(resolvedAccount, resolvedHash);
   if (permit == null) {
     return ResultErr(
-      `unsealCiphertext :: PermitV2 with account <${account}> and hash <${hash}> not found`,
+      `unsealCiphertext :: Permit with account <${account}> and hash <${hash}> not found`,
     );
   }
 
@@ -489,14 +493,14 @@ function unseal<T>(
   const resolvedHash = hash ?? permitStore.getActivePermitHash(resolvedAccount);
   if (resolvedAccount == null || resolvedHash == null) {
     return ResultErr(
-      `unseal :: PermitV2 hash not provided and active PermitV2 not found`,
+      `unseal :: Permit hash not provided and active Permit not found`,
     );
   }
 
   const permit = permitStore.getPermit(resolvedAccount, resolvedHash);
   if (permit == null) {
     return ResultErr(
-      `unseal :: PermitV2 with account <${account}> and hash <${hash}> not found`,
+      `unseal :: Permit with account <${account}> and hash <${hash}> not found`,
     );
   }
 

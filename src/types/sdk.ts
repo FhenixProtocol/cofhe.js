@@ -1,6 +1,5 @@
 export interface AbstractProvider {
   getChainId(): Promise<string>;
-  getNetwork(): Promise<{ chainId: string }>;
   call(tx: { to: string; data: string }): Promise<string>;
 }
 
@@ -13,12 +12,12 @@ export interface AbstractSigner {
   ): Promise<string>;
 }
 
-export type PermitV2AccessRequirements = {
+export type PermitAccessRequirements = {
   contracts: string[];
   projects: string[];
 };
 
-type PermitV2AccessRequirementsParams =
+type PermitAccessRequirementsParams =
   | {
       contracts?: never[];
       projects: string[];
@@ -33,4 +32,4 @@ export type InitializationParams = {
   signer?: AbstractSigner;
   securityZones?: number[];
   coFheUrl?: string;
-} & PermitV2AccessRequirementsParams;
+} & PermitAccessRequirementsParams;

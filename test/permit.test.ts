@@ -5,19 +5,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeAll, describe, expect, expectTypeOf, it } from "vitest";
-import {
-  createTfhePublicKey,
-  PermitV2,
-  SealedAddress,
-  SealedBool,
-  SealedUint,
-  SealingKey,
-} from "../lib/esm";
+
 import { AdaWallet, BobWallet, MockProvider, MockSigner } from "./utils";
 import { afterEach } from "vitest";
 import { getAddress, ZeroAddress } from "ethers";
+import { Permit } from "../src/sdk/permit";
+import { SealingKey } from "../src/sdk/sealing";
+import { SealedBool, SealedUint, SealedAddress } from "../src/types";
 
-describe("PermitV2 Tests", () => {
+describe("Permit Tests", () => {
   let bobPublicKey: string;
   let bobProvider: MockProvider;
   let bobSigner: MockSigner;
@@ -54,7 +50,7 @@ describe("PermitV2 Tests", () => {
   });
 
   it("create (self)", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -87,7 +83,7 @@ describe("PermitV2 Tests", () => {
     expect(cleartext).to.eq(BigInt(value));
   });
   it("create (sharing)", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "sharing",
       issuer: bobAddress,
       recipient: adaAddress,
@@ -99,7 +95,7 @@ describe("PermitV2 Tests", () => {
     expect(permit.recipient).to.eq(adaAddress);
   });
   it("create (recipient)", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "recipient",
       issuer: bobAddress,
       recipient: adaAddress,
@@ -114,7 +110,7 @@ describe("PermitV2 Tests", () => {
   });
 
   it("sign (self)", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -127,7 +123,7 @@ describe("PermitV2 Tests", () => {
     expect(permit.recipientSignature).to.eq("0x");
   });
   it("sign (sharing)", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "sharing",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -141,7 +137,7 @@ describe("PermitV2 Tests", () => {
     expect(permit.recipientSignature).to.eq("0x");
   });
   it("sign (recipient)", async () => {
-    const bobPermit = await PermitV2.create({
+    const bobPermit = await Permit.create({
       type: "sharing",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -157,7 +153,7 @@ describe("PermitV2 Tests", () => {
     expect(bobPermit.issuerSignature).to.not.eq("0x");
     expect(bobPermit.recipientSignature).to.eq("0x");
 
-    const adaPermit = await PermitV2.create({
+    const adaPermit = await Permit.create({
       ...bobPermit,
       type: "recipient",
     });
@@ -172,7 +168,7 @@ describe("PermitV2 Tests", () => {
   });
 
   it("getPermission", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       name: "Test Bob Permit",
       type: "self",
       issuer: bobAddress,
@@ -190,14 +186,14 @@ describe("PermitV2 Tests", () => {
     expect(`0x${sealingPair.publicKey}`).to.eq(sealingKey);
   });
   it("getHash", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
       projects: [counterProjectId],
     });
 
-    const permit2 = await PermitV2.create({
+    const permit2 = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -209,7 +205,7 @@ describe("PermitV2 Tests", () => {
   });
 
   it("unseal", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -246,7 +242,7 @@ describe("PermitV2 Tests", () => {
     expect(bnToAddress(addressCleartext)).to.eq(addressValue);
   });
   it("unsealTyped", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -339,7 +335,7 @@ describe("PermitV2 Tests", () => {
   });
 
   it("serialize", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -355,7 +351,7 @@ describe("PermitV2 Tests", () => {
     );
   });
   it("deserialize", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -366,7 +362,7 @@ describe("PermitV2 Tests", () => {
 
     const serialized = permit.serialize();
 
-    const deserialized = PermitV2.deserialize(serialized);
+    const deserialized = Permit.deserialize(serialized);
 
     expect(serialized.issuer).to.eq(deserialized.issuer);
     expect(serialized.contracts).to.deep.eq(deserialized.contracts);

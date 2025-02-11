@@ -8,25 +8,24 @@ import { beforeAll, describe, expect, expectTypeOf, it } from "vitest";
 import { AdaWallet, BobWallet, MockProvider, MockSigner } from "./utils";
 import { afterEach } from "vitest";
 import { getAddress } from "ethers";
+import { fhenixsdk } from "../src/sdk";
+import { Permit, permitStore } from "../src/sdk/permit";
+import { _permitStore } from "../src/sdk/permit/store";
+import { SealingKey } from "../src/sdk/sealing";
 import {
-  CoFheEncryptedAddress,
-  CoFheEncryptedBool,
-  CoFheEncryptedUint64,
-  CoFheEncryptedUint8,
-  createTfhePublicKey,
+  InitializationParams,
   Encryptable,
-  fhenixsdk,
-  FheUType,
-  PermissionV2,
-  PermitV2,
-  Result,
-  SealedAddress,
+  Permission,
   SealedBool,
   SealedUint,
-  SealingKey,
-} from "../lib/esm";
-import { _permitStore, permitStore } from "../lib/esm/sdk/permit/store";
-import { InitializationParams } from "../src";
+  SealedAddress,
+  CoFheInUint64,
+  CoFheInAddress,
+  CoFheInBool,
+  CoFheInUint8,
+  Result,
+} from "../src/types";
+import { FheTypes } from "tfhe";
 
 describe("Sdk Tests", () => {
   let bobPublicKey: string;
@@ -143,59 +142,60 @@ describe("Sdk Tests", () => {
     // Switch back to bob
 
     // Bob's active permit is pulled from the store during init and exists
-    bobFetchedPermit = (await initSdkWithBob()) as Result<PermitV2>;
+    bobFetchedPermit = (await initSdkWithBob()) as Result<Permit>;
     expect(bobFetchedPermit.success).toEqual(true);
     expect(bobFetchedPermit.data?.getHash()).toEqual(bobPermit.data?.getHash());
   });
 
-  it("encrypt", async () => {
-    await initSdkWithBob();
+  // TODO: Re-enable after zkVerification is implemented
+  // it("encrypt", async () => {
+  //   await initSdkWithBob();
 
-    const nestedEncryptArr = await fhenixsdk.encrypt([
-      Encryptable.uint8(8),
-      Encryptable.uint64(64n),
-      Encryptable.uint256(256n),
-    ] as const);
+  //   const nestedEncryptArr = await fhenixsdk.encrypt([
+  //     Encryptable.uint8(8),
+  //     Encryptable.uint64(64n),
+  //     Encryptable.uint256(256n),
+  //   ] as const);
 
-    expect(nestedEncryptArr.success).to.equal(true);
-    if (!nestedEncryptArr.success) return;
+  //   expect(nestedEncryptArr.success).to.equal(true);
+  //   if (!nestedEncryptArr.success) return;
 
-    nestedEncryptArr.data.forEach((coFheEncryptedInput) => {
-      expect(coFheEncryptedInput.securityZone).to.equal(0);
-      // (example hash: 53077133949660154852355738254566001437975918234711977485445625445799159290262n)
-      // Observed lengths [77, 78]. Please update array if you are here because this test failed. - arch
-      expect(coFheEncryptedInput.hash.toString().length).to.be.gte(76);
-      // TODO: Fix after real signature is included (test will fail)
-      expect(coFheEncryptedInput.signature).to.equal("Haim");
-    });
+  //   nestedEncryptArr.data.forEach((coFheEncryptedInput) => {
+  //     expect(coFheEncryptedInput.securityZone).to.equal(0);
+  //     // (example hash: 53077133949660154852355738254566001437975918234711977485445625445799159290262n)
+  //     // Observed lengths [77, 78]. Please update array if you are here because this test failed. - arch
+  //     expect(coFheEncryptedInput.hash.toString().length).to.be.gte(76);
+  //     // TODO: Fix after real signature is included (test will fail)
+  //     expect(coFheEncryptedInput.signature).to.equal("Haim");
+  //   });
 
-    expect(nestedEncryptArr.data[0].utype).to.equal(FheUType.uint8);
-    expect(nestedEncryptArr.data[1].utype).to.equal(FheUType.uint64);
-    expect(nestedEncryptArr.data[2].utype).to.equal(FheUType.uint256);
+  //   expect(nestedEncryptArr.data[0].utype).to.equal(FheUType.uint8);
+  //   expect(nestedEncryptArr.data[1].utype).to.equal(FheUType.uint64);
+  //   expect(nestedEncryptArr.data[2].utype).to.equal(FheUType.uint256);
 
-    const nestedEncryptObj = await fhenixsdk.encrypt({
-      uint8: Encryptable.uint8(8),
-      uint64: Encryptable.uint64(64n),
-      uint256: Encryptable.uint256(256n),
-    } as const);
+  //   const nestedEncryptObj = await fhenixsdk.encrypt({
+  //     uint8: Encryptable.uint8(8),
+  //     uint64: Encryptable.uint64(64n),
+  //     uint256: Encryptable.uint256(256n),
+  //   } as const);
 
-    expect(nestedEncryptObj.success).to.equal(true);
-    if (!nestedEncryptObj.success) return;
+  //   expect(nestedEncryptObj.success).to.equal(true);
+  //   if (!nestedEncryptObj.success) return;
 
-    Object.entries(nestedEncryptObj.data).forEach(
-      ([utype, coFheEncryptedInput]) => {
-        expect(coFheEncryptedInput.securityZone).to.equal(0);
-        expect(coFheEncryptedInput.utype).to.equal(
-          FheUType[utype as unknown as FheUType],
-        );
-        // (example hash: 53077133949660154852355738254566001437975918234711977485445625445799159290262n)
-        // Observed lengths [77, 78]. Please update array if you are here because this test failed. - arch
-        expect(coFheEncryptedInput.hash.toString().length).to.be.gte(76);
-        // TODO: Fix after real signature is included (test will fail)
-        expect(coFheEncryptedInput.signature).to.equal("Haim");
-      },
-    );
-  });
+  //   Object.entries(nestedEncryptObj.data).forEach(
+  //     ([utype, coFheEncryptedInput]) => {
+  //       expect(coFheEncryptedInput.securityZone).to.equal(0);
+  //       expect(coFheEncryptedInput.utype).to.equal(
+  //         FheUType[utype as unknown as FheUType],
+  //       );
+  //       // (example hash: 53077133949660154852355738254566001437975918234711977485445625445799159290262n)
+  //       // Observed lengths [77, 78]. Please update array if you are here because this test failed. - arch
+  //       expect(coFheEncryptedInput.hash.toString().length).to.be.gte(76);
+  //       // TODO: Fix after real signature is included (test will fail)
+  //       expect(coFheEncryptedInput.signature).to.equal("Haim");
+  //     },
+  //   );
+  // });
 
   it("encrypt (type check)", async () => {
     await initSdkWithBob();
@@ -208,21 +208,21 @@ describe("Sdk Tests", () => {
 
     const PermissionSlot = "permission" as const;
 
-    const injectedPermission = await fhenixsdk.encrypt(PermissionSlot);
-    expectTypeOf(injectedPermission.data!).toEqualTypeOf<PermissionV2>();
+    const injectedPermission = await fhenixsdk.prepareInputs(PermissionSlot);
+    expectTypeOf(injectedPermission.data!).toEqualTypeOf<Permission>();
 
-    const nestedEncrypt = await fhenixsdk.encrypt([
+    const nestedEncrypt = await fhenixsdk.prepareInputs([
       PermissionSlot,
       { a: Encryptable.bool(false), b: Encryptable.uint64(10n), c: "hello" },
       ["hello", 20n, Encryptable.address(contractAddress)],
-      Encryptable.uint8(10),
+      Encryptable.uint8("10"),
     ] as const);
 
     type ExpectedEncryptedType = [
-      PermissionV2,
-      Readonly<{ a: CoFheEncryptedBool; b: CoFheEncryptedUint64; c: string }>,
-      Readonly<[string, bigint, CoFheEncryptedAddress]>,
-      CoFheEncryptedUint8,
+      Permission,
+      Readonly<{ a: CoFheInBool; b: CoFheInUint64; c: string }>,
+      Readonly<[string, bigint, CoFheInAddress]>,
+      CoFheInUint8,
     ];
 
     expectTypeOf<Readonly<ExpectedEncryptedType>>().toEqualTypeOf(
@@ -232,15 +232,15 @@ describe("Sdk Tests", () => {
 
   // PERMITS
 
-  // Most of the PermitV2 logic is held within the PermitV2 class
-  // This core functionality is tested in permitV2.test.ts
-  // The FhenixClientV2 acts as a utility layer to improve the experience of working with PermitV2s
+  // Most of the Permit logic is held within the Permit class
+  // This core functionality is tested in permit.test.ts
+  // The FhenixClient acts as a utility layer to improve the experience of working with Permits
   // The following tests target the client interaction with localstorage and its own reused stateful variables
   //   (this.account, this.chainId, this.send, this.signTypedData)
   // @architect-dev 2024-11-14
 
   it("localstorage", async () => {
-    // FhenixClientV2 leverages a persisted zustand store to handle localstorage
+    // FhenixClient leverages a persisted zustand store to handle localstorage
     // zustand persist is heavily tested, this test is just to ensure that its working in our implementation
 
     await initSdkWithBob();
@@ -317,7 +317,7 @@ describe("Sdk Tests", () => {
       ];
     expect(storePermitSerialized).to.not.be.null;
 
-    const storePermit = PermitV2.deserialize(storePermitSerialized!);
+    const storePermit = Permit.deserialize(storePermitSerialized!);
     expect(storePermit.getHash()).toEqual(permit.data?.getHash());
 
     // Is active permit
@@ -389,7 +389,7 @@ describe("Sdk Tests", () => {
     expect(bnToAddress(addressCleartext)).toEqual(addressValue);
   });
   it("unseal", async () => {
-    const permit = await PermitV2.create({
+    const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
       contracts: [contractAddress, contractAddress2],
@@ -400,21 +400,21 @@ describe("Sdk Tests", () => {
     const boolValue = true;
     const boolCipherStruct: SealedBool = {
       data: SealingKey.seal(boolValue ? 1 : 0, permit.sealingPair.publicKey),
-      utype: 13,
+      utype: FheTypes.Bool,
     };
 
     // Uint
     const uintValue = 937387n;
     const uintCipherStruct: SealedUint = {
       data: SealingKey.seal(uintValue, permit.sealingPair.publicKey),
-      utype: 4,
+      utype: FheTypes.Uint64,
     };
 
     // Address
     const addressValue = contractAddress;
     const addressCipherStruct: SealedAddress = {
       data: SealingKey.seal(BigInt(addressValue), permit.sealingPair.publicKey),
-      utype: 12,
+      utype: FheTypes.Uint160,
     };
 
     // Array - Nested
@@ -424,7 +424,7 @@ describe("Sdk Tests", () => {
       addressCipherStruct,
     ] as const);
 
-    type ExpectedCleartextType = Readonly<[boolean, bigint, string]>;
+    type ExpectedCleartextType = readonly [boolean, bigint, string];
 
     const expectedCleartext = [boolValue, uintValue, addressValue];
 

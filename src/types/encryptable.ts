@@ -11,6 +11,7 @@ import {
   CoFheInAddress,
 } from "./encrypted";
 import { FheTypes } from "tfhe";
+import { Permission } from "./permit";
 
 export type EncryptableBool = {
   data: boolean;
@@ -48,6 +49,8 @@ export type EncryptableAddress = {
 export const Encryptable = {
   bool: (data: EncryptableBool["data"], securityZone = 0) =>
     ({ data, securityZone, utype: FheTypes.Bool }) as EncryptableBool,
+  address: (data: EncryptableAddress["data"], securityZone = 0) =>
+    ({ data, securityZone, utype: FheTypes.Uint160 }) as EncryptableAddress,
   uint8: (data: EncryptableUint8["data"], securityZone = 0) =>
     ({ data, securityZone, utype: FheTypes.Uint8 }) as EncryptableUint8,
   uint16: (data: EncryptableUint16["data"], securityZone = 0) =>
@@ -92,13 +95,15 @@ export type Encryptable_CoFheInItem_Map<E extends EncryptableItem> =
                   ? CoFheInAddress
                   : never;
 
-export type Mapped_Encryptable_CoFheInItem<T> = T extends Primitive
-  ? LiteralToPrimitive<T>
-  : T extends EncryptableItem
-    ? Encryptable_CoFheInItem_Map<T>
-    : {
-        [K in keyof T]: Mapped_Encryptable_CoFheInItem<T[K]>;
-      };
+export type Prepared_Inputs<T> = T extends "permission"
+  ? Permission
+  : T extends Primitive
+    ? LiteralToPrimitive<T>
+    : T extends EncryptableItem
+      ? Encryptable_CoFheInItem_Map<T>
+      : {
+          [K in keyof T]: Prepared_Inputs<T[K]>;
+        };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isEncryptableItem(value: any): value is EncryptableItem {
