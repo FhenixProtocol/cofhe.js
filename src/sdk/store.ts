@@ -123,7 +123,7 @@ export const _store_setFheKey = (
 const getChainIdFromProvider = async (
   provider: AbstractProvider,
 ): Promise<string> => {
-  var chainId: string | null = null;
+  let chainId: string | null = null;
   try {
     chainId = await provider.getChainId();
   } catch (err) {
@@ -235,7 +235,7 @@ export const _store_fetchFheKey = async (
   // Fetch publicKey from CoFhe
   try {
     // TODO: misspelling?
-    const res = await fetch(`${coFheUrl}/GetNetworkPublickKey`, {
+    const res = await fetch(`${coFheUrl}/GetNetworkPublicKey`, {
       method: "POST",
       body: JSON.stringify({
         SecurityZone: securityZone,
