@@ -47,6 +47,7 @@ describe("Sdk Tests", () => {
 
   const initSdkWithBob = async () => {
     return fhenixsdk.initialize({
+      target: "node",
       provider: bobProvider,
       signer: bobSigner,
       projects: [counterProjectId],
@@ -55,6 +56,7 @@ describe("Sdk Tests", () => {
   };
   const initSdkWithAda = async () => {
     return fhenixsdk.initialize({
+      target: "node",
       provider: adaProvider,
       signer: adaSigner,
       projects: [counterProjectId],
@@ -63,12 +65,12 @@ describe("Sdk Tests", () => {
   };
 
   beforeAll(async () => {
-    bobPublicKey = createTfhePublicKey();
+    bobPublicKey = await createTfhePublicKey("node");
     bobProvider = new MockProvider(bobPublicKey, BobWallet);
     bobSigner = await bobProvider.getSigner();
     bobAddress = await bobSigner.getAddress();
 
-    adaPublicKey = createTfhePublicKey();
+    adaPublicKey = await createTfhePublicKey("node");
     adaProvider = new MockProvider(adaPublicKey, AdaWallet);
     adaSigner = await adaProvider.getSigner();
     adaAddress = await adaSigner.getAddress();
@@ -98,6 +100,7 @@ describe("Sdk Tests", () => {
     expect(fhenixsdk.store.getState().fheKeysInitialized).toEqual(true);
 
     const initWithoutProviderResult = await fhenixsdk.initialize({
+      target: "node",
       // provider: bobProvider,
       // signer: bobSigner,
       coFheUrl,
@@ -108,6 +111,7 @@ describe("Sdk Tests", () => {
     );
 
     const initWithoutSecurityZonesResult = await fhenixsdk.initialize({
+      target: "node",
       provider: bobProvider,
       signer: bobSigner,
       securityZones: [],

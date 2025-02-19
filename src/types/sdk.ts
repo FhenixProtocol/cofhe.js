@@ -28,6 +28,7 @@ type PermitAccessRequirementsParams =
     };
 
 export type InitializationParams = {
+  target: "web" | "node";
   provider: AbstractProvider;
   signer?: AbstractSigner;
   securityZones?: number[];

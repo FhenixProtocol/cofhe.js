@@ -7,7 +7,6 @@ import {
   _store_initialize,
   SdkStore,
 } from "./store";
-import { initTfhe } from "./init";
 import {
   CoFheInItem,
   Prepared_Inputs,
@@ -23,6 +22,7 @@ import {
   EncryptableItem,
 } from "../types";
 import { zkPack, zkProve, zkVerify } from "./zkPoK";
+import { initTfhe } from "./tfhe-wrapper";
 
 /**
  * Initializes the `fhenixsdk` to enable encrypting input data, creating permits / permissions, and decrypting sealed outputs.
@@ -36,7 +36,7 @@ const initialize = async (
   },
 ): Promise<Result<Permit | undefined>> => {
   // Initialize the fhevm
-  await initTfhe().catch((err: unknown) => {
+  await initTfhe(params.target).catch((err: unknown) => {
     if (params.ignoreErrors) {
       return undefined;
     } else {

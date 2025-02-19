@@ -32,12 +32,12 @@ describe("Permit Tests", () => {
   const uniswapProjectId = "UNISWAP";
 
   beforeAll(async () => {
-    bobPublicKey = createTfhePublicKey();
+    bobPublicKey = await createTfhePublicKey("node");
     bobProvider = new MockProvider(bobPublicKey, BobWallet);
     bobSigner = await bobProvider.getSigner();
     bobAddress = await bobSigner.getAddress();
 
-    adaPublicKey = createTfhePublicKey();
+    adaPublicKey = await createTfhePublicKey("node");
     adaProvider = new MockProvider(adaPublicKey, AdaWallet);
     adaSigner = await adaProvider.getSigner();
     adaAddress = await adaSigner.getAddress();

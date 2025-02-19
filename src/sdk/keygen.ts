@@ -1,15 +1,16 @@
-import { TfheClientKey, TfheCompactPublicKey, TfheConfigBuilder } from "tfhe";
+import { getTfhe } from "./tfhe-wrapper";
 
 export const createTfheKeypair = () => {
+  const tfhe = getTfhe();
   // const block_params = new ShortintParameters(
   //   ShortintParametersName.PARAM_MESSAGE_2_CARRY_2_COMPACT_PK_PBS_KS,
   // );
-  const config = TfheConfigBuilder.default()
+  const config = tfhe.TfheConfigBuilder.default()
     //..(block_params)
     .build();
-  const clientKey = TfheClientKey.generate(config);
-  let publicKey = TfheCompactPublicKey.new(clientKey);
-  publicKey = TfheCompactPublicKey.deserialize(publicKey.serialize());
+  const clientKey = tfhe.TfheClientKey.generate(config);
+  let publicKey = tfhe.TfheCompactPublicKey.new(clientKey);
+  publicKey = tfhe.TfheCompactPublicKey.deserialize(publicKey.serialize());
   return { clientKey, publicKey };
 };
 
