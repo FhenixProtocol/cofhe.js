@@ -22,9 +22,6 @@ import {
 } from "tfhe";
 import { getTfhe } from "./tfhe-wrapper";
 
-// TODO: Receive from cofhe
-const crs = "0xFAKECRS" as unknown as CompactPkeCrs;
-
 export const zkPack = (
   items: EncryptableItem[],
   publicKey: TfheCompactPublicKey,
@@ -90,6 +87,7 @@ export const zkPack = (
 
 export const zkProve = async (
   builder: CompactCiphertextListBuilder,
+  crs: CompactPkeCrs,
   address: string,
   securityZone: number,
 ): Promise<ProvenCompactCiphertextList> => {

@@ -10,7 +10,7 @@ import {
   InitializationParams,
   PermitAccessRequirements,
 } from "../types";
-import { type TfheCompactPublicKey } from "tfhe";
+import { type TfheCompactPublicKey, type CompactPkeCrs } from "tfhe";
 import { getTfhe } from "./tfhe-wrapper";
 
 type ChainRecord<T> = Record<string, T>;
@@ -49,6 +49,7 @@ export type SdkStore = SdkStoreProviderInitialization &
 
     securityZones: number[];
     fheKeys: ChainRecord<SecurityZoneRecord<Uint8Array | undefined>>;
+    crs: ChainRecord<Uint8Array | undefined>;
     accessRequirements: PermitAccessRequirements;
 
     coFheUrl: string | undefined;
@@ -61,6 +62,7 @@ export const _sdkStore = createStore<SdkStore>(
 
       securityZones: [0],
       fheKeys: {},
+      crs: {},
       accessRequirements: {
         contracts: [],
         projects: [],
@@ -121,6 +123,31 @@ export const _store_setFheKey = (
       state.fheKeys[chainId][securityZone] = fheKey?.serialize();
     }),
   );
+};
+
+export const _store_setCrs = (
+  chainId: string | undefined,
+  crs: CompactPkeCrs | undefined,
+) => {
+  if (chainId == null) return;
+
+  _sdkStore.setState(
+    produce<SdkStore>((state) => {
+      state.crs[chainId] = crs?.serialize(false);
+    }),
+  );
+};
+
+export const _store_getCrs = (
+  chainId: string | undefined,
+): CompactPkeCrs | undefined => {
+  if (chainId == null) return undefined;
+
+  const serialized = _sdkStore.getState().crs[chainId];
+  if (serialized == null) return undefined;
+
+  const tfhe = getTfhe();
+  return tfhe.CompactPkeCrs.deserialize(serialized);
 };
 
 const getChainIdFromProvider = async (
@@ -227,6 +254,7 @@ export const _store_fetchFheKey = async (
   }
 
   let pk_data: string | undefined = undefined;
+  let crs_data: string | undefined = undefined;
 
   // Fetch publicKey from CoFhe
   try {
@@ -238,35 +266,16 @@ export const _store_fetchFheKey = async (
     const crs_res = await fetch(`${coFheUrl}/crs`, {
       method: "POST",
     });
-    const crs_data = await crs_res.json();
-    // const crsBytes = fromHexString(crs_data.crs);
-    // console.log("crs", crsBytes);
-
-    // // TODO: fix typo?
-    // const res = await fetch(`${coFheUrl}/GetNetworkPublickKey`, {
-    //   method: "POST",
-    //   // body: JSON.stringify({
-    //   //   SecurityZone: securityZone,
-    //   // }),
-    // });
-
-    // console.log({ res });
-
-    // const data = await res.json();
-
-    // console.log({ data });
-
-    // pk_data = `0x${data.securityZone}`;
+    crs_data = (await crs_res.json()).crs;
   } catch (err) {
     throw new Error(
-      `Error initializing fhenixjs; fetching FHE publicKey from CoFHE failed with error ${err}`,
+      `Error initializing fhenixjs; fetching FHE publicKey and CRS from CoFHE failed with error ${err}`,
     );
   }
 
   if (pk_data == null || typeof pk_data !== "string") {
-    console.log("pk_data", pk_data);
     throw new Error(
-      `Error initializing fhenixjs; FHE publicKey fetched from CoFHE invalid: not a string`,
+      `Error initializing fhenixjs; FHE publicKey fetched from CoFHE invalid: missing or not a string`,
     );
   }
 
@@ -282,12 +291,21 @@ export const _store_fetchFheKey = async (
     );
   }
 
-  const buff = fromHexString(pk_data);
+  if (crs_data == null || typeof crs_data !== "string") {
+    throw new Error(
+      `Error initializing fhenixjs; CRS fetched from CoFHE invalid: missing or not a string`,
+    );
+  }
+
+  const pk_buff = fromHexString(pk_data);
+  const crs_buff = fromHexString(crs_data);
 
   try {
     const tfhe = getTfhe();
-    const key = tfhe.TfheCompactPublicKey.deserialize(buff);
+    const key = tfhe.TfheCompactPublicKey.deserialize(pk_buff);
     _store_setFheKey(chainId, securityZone, key);
+    const crs = tfhe.CompactPkeCrs.deserialize(crs_buff);
+    _store_setCrs(chainId, crs);
     return key;
   } catch (err) {
     throw new Error(`Error deserializing public key ${err}`);

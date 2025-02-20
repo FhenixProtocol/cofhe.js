@@ -4,6 +4,7 @@ import { isString } from "./validation";
 import {
   _sdkStore,
   _store_getConnectedChainFheKey,
+  _store_getCrs,
   _store_initialize,
   SdkStore,
 } from "./store";
@@ -400,6 +401,10 @@ async function prepareInputs<T>(item: T, securityZone = 0) {
   if (fhePublicKey == null)
     return ResultErr("prepareInputs :: fheKey for current chain not found");
 
+  const crs = _store_getCrs(state.chainId);
+  if (crs == null)
+    return ResultErr("prepareInputs :: CRS for current chain not found");
+
   const coFheUrl = state.coFheUrl;
   if (coFheUrl == null)
     return ResultErr("prepareInputs :: coFheUrl not initialized");
@@ -407,7 +412,7 @@ async function prepareInputs<T>(item: T, securityZone = 0) {
   const encryptableItems = extractEncryptables(item);
 
   const builder = zkPack(encryptableItems, fhePublicKey);
-  const proved = await zkProve(builder, state.account, securityZone);
+  const proved = await zkProve(builder, crs, state.account, securityZone);
   const zkVerifyRes = await zkVerify(coFheUrl, proved);
 
   if (!zkVerifyRes.ok)
