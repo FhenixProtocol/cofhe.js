@@ -1,7 +1,7 @@
-import { getOrInitTfhe } from "../sdk/tfhe-wrapper";
+import { initTfhe } from "../sdk/tfhe-wrapper";
 
 export const createTfheKeypair = async (target: "web" | "node") => {
-  const tfhe = await getOrInitTfhe(target);
+  const tfhe = await initTfhe(target);
 
   // const block_params = new ShortintParameters(
   //   ShortintParametersName.PARAM_MESSAGE_2_CARRY_2_COMPACT_PK_PBS_KS,

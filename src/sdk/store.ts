@@ -10,7 +10,8 @@ import {
   InitializationParams,
   PermitAccessRequirements,
 } from "../types";
-import { TfheCompressedPublicKey } from "tfhe";
+import { type TfheCompactPublicKey } from "tfhe";
+import { getTfhe } from "./tfhe-wrapper";
 
 type ChainRecord<T> = Record<string, T>;
 type SecurityZoneRecord<T> = Record<number, T>;
@@ -82,18 +83,19 @@ export const _sdkStore = createStore<SdkStore>(
 const _store_getFheKey = (
   chainId: string | undefined,
   securityZone = 0,
-): TfheCompressedPublicKey | undefined => {
+): TfheCompactPublicKey | undefined => {
   if (chainId == null || securityZone == null) return undefined;
 
   const serialized = _sdkStore.getState().fheKeys[chainId]?.[securityZone];
   if (serialized == null) return undefined;
 
-  return TfheCompressedPublicKey.deserialize(serialized);
+  const tfhe = getTfhe();
+  return tfhe.TfheCompactPublicKey.deserialize(serialized);
 };
 
 export const _store_getConnectedChainFheKey = (
   securityZone = 0,
-): TfheCompressedPublicKey | undefined => {
+): TfheCompactPublicKey | undefined => {
   const state = _sdkStore.getState();
 
   if (securityZone == null) return undefined;
@@ -102,13 +104,14 @@ export const _store_getConnectedChainFheKey = (
   const serialized = state.fheKeys[state.chainId]?.[securityZone];
   if (serialized == null) return undefined;
 
-  return TfheCompressedPublicKey.deserialize(serialized);
+  const tfhe = getTfhe();
+  return tfhe.TfheCompactPublicKey.deserialize(serialized);
 };
 
 export const _store_setFheKey = (
   chainId: string | undefined,
   securityZone: number | undefined,
-  fheKey: TfheCompressedPublicKey | undefined,
+  fheKey: TfheCompactPublicKey | undefined,
 ) => {
   if (chainId == null || securityZone == null) return;
 
@@ -206,13 +209,13 @@ export const _store_initialize = async (params: InitializationParams) => {
  * If the key already exists in the store it is returned, else it is fetched, stored, and returned
  * @param {string} chainId - The chain to fetch the FHE key for, if no chainId provided, undefined is returned
  * @param securityZone - The security zone for which to retrieve the key (default 0).
- * @returns {Promise<TfheCompressedPublicKey>} - The retrieved public key.
+ * @returns {Promise<TfheCompactPublicKey>} - The retrieved public key.
  */
 export const _store_fetchFheKey = async (
   chainId: string,
   securityZone: number = 0,
   forceFetch = false,
-): Promise<TfheCompressedPublicKey> => {
+): Promise<TfheCompactPublicKey> => {
   const storedKey = _store_getFheKey(chainId, securityZone);
   if (storedKey != null && !forceFetch) return storedKey;
 
@@ -223,49 +226,67 @@ export const _store_fetchFheKey = async (
     );
   }
 
-  let publicKey: string | undefined = undefined;
+  let pk_data: string | undefined = undefined;
 
   // Fetch publicKey from CoFhe
   try {
-    // TODO: misspelling?
-    const res = await fetch(`${coFheUrl}/GetNetworkPublicKey`, {
+    const pk_res = await fetch(`${coFheUrl}/GetNetworkPublickKey`, {
       method: "POST",
-      body: JSON.stringify({
-        SecurityZone: securityZone,
-      }),
     });
+    pk_data = (await pk_res.json()).public_key;
 
-    const data = await res.json();
+    const crs_res = await fetch(`${coFheUrl}/crs`, {
+      method: "POST",
+    });
+    const crs_data = await crs_res.json();
+    // const crsBytes = fromHexString(crs_data.crs);
+    // console.log("crs", crsBytes);
 
-    publicKey = `0x${data.securityZone}`;
+    // // TODO: fix typo?
+    // const res = await fetch(`${coFheUrl}/GetNetworkPublickKey`, {
+    //   method: "POST",
+    //   // body: JSON.stringify({
+    //   //   SecurityZone: securityZone,
+    //   // }),
+    // });
+
+    // console.log({ res });
+
+    // const data = await res.json();
+
+    // console.log({ data });
+
+    // pk_data = `0x${data.securityZone}`;
   } catch (err) {
     throw new Error(
       `Error initializing fhenixjs; fetching FHE publicKey from CoFHE failed with error ${err}`,
     );
   }
 
-  if (publicKey == null || typeof publicKey !== "string") {
+  if (pk_data == null || typeof pk_data !== "string") {
+    console.log("pk_data", pk_data);
     throw new Error(
       `Error initializing fhenixjs; FHE publicKey fetched from CoFHE invalid: not a string`,
     );
   }
 
-  if (publicKey === "0x") {
+  if (pk_data === "0x") {
     throw new Error(
       "Error initializing fhenixjs; provided chain is not FHE enabled, no FHE publicKey found",
     );
   }
 
-  if (publicKey.length < PUBLIC_KEY_LENGTH_MIN) {
+  if (pk_data.length < PUBLIC_KEY_LENGTH_MIN) {
     throw new Error(
-      `Error initializing fhenixjs; got shorter than expected FHE publicKey: ${publicKey.length}. Expected length >= ${PUBLIC_KEY_LENGTH_MIN}`,
+      `Error initializing fhenixjs; got shorter than expected FHE publicKey: ${pk_data.length}. Expected length >= ${PUBLIC_KEY_LENGTH_MIN}`,
     );
   }
 
-  const buff = fromHexString(publicKey);
+  const buff = fromHexString(pk_data);
 
   try {
-    const key = TfheCompressedPublicKey.deserialize(buff);
+    const tfhe = getTfhe();
+    const key = tfhe.TfheCompactPublicKey.deserialize(buff);
     _store_setFheKey(chainId, securityZone, key);
     return key;
   } catch (err) {

@@ -22,10 +22,3 @@ export function getTfhe() {
   if (tfheModule == null) throw new Error("Tfhe not initialized");
   return tfheModule;
 }
-
-export async function getOrInitTfhe(target: "web" | "node") {
-  if (tfheModule == null) {
-    tfheModule = await initTfhe(target);
-  }
-  return tfheModule;
-}

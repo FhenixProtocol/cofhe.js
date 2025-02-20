@@ -43,7 +43,7 @@ describe("Sdk Tests", () => {
   const contractAddress2 = "0xB170fC5BAC4a87A63fC84653Ee7e0db65CC62f96";
   const counterProjectId = "COUNTER";
   const uniswapProjectId = "UNISWAP";
-  const coFheUrl = "http://127.0.0.1:8448";
+  const coFheUrl = "http://127.0.0.1:3000";
 
   const initSdkWithBob = async () => {
     return fhenixsdk.initialize({
