@@ -50,7 +50,6 @@ describe("Sdk Tests", () => {
       target: "node",
       provider: bobProvider,
       signer: bobSigner,
-      projects: [counterProjectId],
       coFheUrl,
     });
   };
@@ -59,7 +58,6 @@ describe("Sdk Tests", () => {
       target: "node",
       provider: adaProvider,
       signer: adaSigner,
-      projects: [counterProjectId],
       coFheUrl,
     });
   };
@@ -208,7 +206,6 @@ describe("Sdk Tests", () => {
     await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
-      projects: [counterProjectId],
     });
 
     const PermissionSlot = "permission" as const;
@@ -252,13 +249,10 @@ describe("Sdk Tests", () => {
     const permit1 = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
-      projects: [counterProjectId],
     });
     const permit2 = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
-      projects: [counterProjectId, uniswapProjectId],
-      contracts: [contractAddress2],
     });
 
     const dumpLocalStorage = (): { [key: string]: object } => {
@@ -300,7 +294,6 @@ describe("Sdk Tests", () => {
     const createPermitWithoutInitResult = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
-      projects: [counterProjectId],
     });
     expect(createPermitWithoutInitResult.success).toEqual(false);
     expect(createPermitWithoutInitResult.error).toEqual(
@@ -311,7 +304,6 @@ describe("Sdk Tests", () => {
     const permit = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
-      projects: [counterProjectId],
     });
 
     // Permit established in store
@@ -336,7 +328,6 @@ describe("Sdk Tests", () => {
     const permit2 = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
-      projects: [counterProjectId],
     });
 
     const storeActivePermitHash2 =
@@ -359,8 +350,6 @@ describe("Sdk Tests", () => {
       await cofhejs.createPermit({
         type: "self",
         issuer: bobAddress,
-        contracts: [contractAddress, contractAddress2],
-        projects: [counterProjectId],
       })
     ).data!;
 
@@ -397,8 +386,6 @@ describe("Sdk Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     // Bool
@@ -449,7 +436,6 @@ describe("Sdk Tests", () => {
   //   await cofhejs.initialize({
   //     provider: bobProvider,
   //     signer: bobSigner,
-  //     projects: [counterProjectId],
   //   });
   //   await cofhejs.createPermit();
 

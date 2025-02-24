@@ -18,8 +18,6 @@ const zPermitWithDefaults = z.object({
       message: "Permit issuer :: must not be zeroAddress",
     }),
   expiration: z.number().optional().default(1000000000000),
-  contracts: z.array(z.string()).optional().default([]),
-  projects: z.array(z.string()).optional().default([]),
   recipient: z
     .string()
     .optional()
@@ -41,21 +39,6 @@ const zPermitWithDefaults = z.object({
 });
 
 type zPermitType = z.infer<typeof zPermitWithDefaults>;
-
-/**
- * Ensures that this Permit will provide access to a non-zero amount of contracts
- * by ensuring that `contracts` and `projects` aren't both empty arrays.
- */
-const PermitRefineAccess = [
-  (data: zPermitType) => {
-    return data.contracts.length + data.projects.length > 0;
-  },
-  {
-    message:
-      "Permit access :: at least one contract or project must be accessible.",
-    path: ["contracts", "projects"] as string[],
-  },
-] as const;
 
 /**
  * Permits allow a hook into an optional external validator contract,
@@ -169,7 +152,6 @@ const PermitSignaturesSuperRefinement = (options: {
  * Signatures superRefinement checks only the recipient, sealingPair and signatures are not necessary in the Permit params
  */
 export const PermitParamsValidator = zPermitWithDefaults
-  .refine(...PermitRefineAccess)
   .refine(...PermitRefineValidator)
   .superRefine(
     PermitSignaturesSuperRefinement({
@@ -187,7 +169,6 @@ export const PermitParamsValidator = zPermitWithDefaults
  */
 export const FullyFormedPermitValidator = zPermitWithDefaults
   .required()
-  .refine(...PermitRefineAccess)
   .refine(...PermitRefineValidator)
   .superRefine(
     PermitSignaturesSuperRefinement({

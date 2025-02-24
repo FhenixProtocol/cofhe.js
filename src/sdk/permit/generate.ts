@@ -5,8 +5,6 @@ import { ZeroAddress } from "ethers";
 const PermitSignatureAllFields = [
   { name: "issuer", type: "address" },
   { name: "expiration", type: "uint64" },
-  { name: "contracts", type: "address[]" },
-  { name: "projects", type: "string[]" },
   { name: "recipient", type: "address" },
   { name: "validatorId", type: "uint256" },
   { name: "validatorContract", type: "address" },
@@ -20,8 +18,6 @@ export const SignatureTypes = {
   PermissionedIssuerSelf: [
     "issuer",
     "expiration",
-    "contracts",
-    "projects",
     "recipient",
     "validatorId",
     "validatorContract",
@@ -30,8 +26,6 @@ export const SignatureTypes = {
   PermissionedIssuerShared: [
     "issuer",
     "expiration",
-    "contracts",
-    "projects",
     "recipient",
     "validatorId",
     "validatorContract",
@@ -68,8 +62,8 @@ export const getSignatureTypesAndMessage = <
 };
 
 export const getSignatureDomain = (chainId: string) => ({
-  name: "Fhenix Permission .0.0",
-  version: ".0.0",
+  name: "Fhenix Permission 1.0.0",
+  version: "1.0.0",
   chainId: parseInt(chainId),
   verifyingContract: ZeroAddress,
 });

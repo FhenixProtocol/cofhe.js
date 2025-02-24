@@ -24,14 +24,6 @@ export type PermitInterface = {
    */
   expiration: number;
   /**
-   * (base) List of contract addresses that can be accessed with this permission
-   */
-  contracts: string[];
-  /**
-   * (base) List of project identifiers (strings) that can be accessed
-   */
-  projects: string[];
-  /**
    * (sharing) The user that this permission will be shared with
    * ** optional, use `address(0)` to disable **
    */
@@ -55,8 +47,8 @@ export type PermitInterface = {
   /**
    * (base) `signTypedData` signature created by `issuer`.
    * (base) Shared- and Self- permissions differ in signature format: (`sealingKey` absent in shared signature)
-   *   (non-sharing) < issuer, expiration, contracts, projects, recipient, validatorId, validatorContract, sealingKey >
-   *   (sharing)     < issuer, expiration, contracts, projects, recipient, validatorId, validatorContract >
+   *   (non-sharing) < issuer, expiration, recipient, validatorId, validatorContract, sealingKey >
+   *   (sharing)     < issuer, expiration, recipient, validatorId, validatorContract >
    */
   issuerSignature: string;
   /**
@@ -84,26 +76,12 @@ export type PickPartial<T, F extends keyof T> = Expand<
   Omit<T, F> & Partial<Pick<T, F>>
 >;
 
-export type PermitSatisfiers = Expand<
-  Pick<PermitInterface, "contracts" | "projects">
->;
-
 export type PermitCore = Expand<
   Pick<PermitInterface, "issuer"> &
     Partial<
-      Pick<
-        PermitInterface,
-        | "contracts"
-        | "projects"
-        | "recipient"
-        | "validatorId"
-        | "validatorContract"
-      >
+      Pick<PermitInterface, "recipient" | "validatorId" | "validatorContract">
     >
 >;
-// export type PermitOptions = Expand<
-//   Partial<PermitInterface> & Pick<PermitInterface, "type" | "issuer">
-// >;
 
 export type PermitOptions =
   // Self permit requires at minimum `issuer`, excludes `recipient` and `recipientSignature`

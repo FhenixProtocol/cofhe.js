@@ -113,7 +113,7 @@ const _checkInitialized = (
  * NOTE: This is a wrapper around `Permit.create` and `Permit.sign`
  *
  * @param {PermitOptions} options - Partial Permit fields to create the Permit with, if no options provided will be filled with the defaults:
- * { type: "self", issuer: initializedUserAddress, projects: initializedProjects, contracts: initializedContracts }
+ * { type: "self", issuer: initializedUserAddress }
  * @returns {Result<Permit>} - Newly created Permit as a Result object
  */
 const createPermit = async (
@@ -128,8 +128,6 @@ const createPermit = async (
   const optionsWithDefaults: PermitOptions = {
     type: "self",
     issuer: state.account,
-    contracts: state.accessRequirements.contracts,
-    projects: state.accessRequirements.projects,
     ...options,
   };
 

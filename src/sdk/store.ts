@@ -8,7 +8,6 @@ import {
   AbstractProvider,
   AbstractSigner,
   InitializationParams,
-  PermitAccessRequirements,
 } from "../types";
 import { type TfheCompactPublicKey, type CompactPkeCrs } from "tfhe";
 import { getTfhe } from "./tfhe-wrapper";
@@ -50,7 +49,6 @@ export type SdkStore = SdkStoreProviderInitialization &
     securityZones: number[];
     fheKeys: ChainRecord<SecurityZoneRecord<Uint8Array | undefined>>;
     crs: ChainRecord<Uint8Array | undefined>;
-    accessRequirements: PermitAccessRequirements;
 
     coFheUrl: string | undefined;
   };
@@ -63,10 +61,6 @@ export const _sdkStore = createStore<SdkStore>(
       securityZones: [0],
       fheKeys: {},
       crs: {},
-      accessRequirements: {
-        contracts: [],
-        projects: [],
-      },
 
       coFheUrl: undefined,
 
@@ -168,18 +162,12 @@ export const _store_initialize = async (params: InitializationParams) => {
     provider,
     signer,
     securityZones = [0],
-    contracts: contractRequirements = [],
-    projects: projectRequirements = [],
     coFheUrl = undefined,
   } = params;
 
   _sdkStore.setState({
     providerInitialized: false,
     signerInitialized: false,
-    accessRequirements: {
-      contracts: contractRequirements,
-      projects: projectRequirements,
-    },
     coFheUrl,
   });
 

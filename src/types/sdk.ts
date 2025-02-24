@@ -12,25 +12,10 @@ export interface AbstractSigner {
   ): Promise<string>;
 }
 
-export type PermitAccessRequirements = {
-  contracts: string[];
-  projects: string[];
-};
-
-type PermitAccessRequirementsParams =
-  | {
-      contracts?: never[];
-      projects: string[];
-    }
-  | {
-      contracts: string[];
-      projects?: never[];
-    };
-
 export type InitializationParams = {
   target: "web" | "node";
   provider: AbstractProvider;
   signer?: AbstractSigner;
   securityZones?: number[];
   coFheUrl?: string;
-} & PermitAccessRequirementsParams;
+};

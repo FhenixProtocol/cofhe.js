@@ -44,14 +44,6 @@ export class Permit implements PermitInterface, PermitMetadata {
    */
   public expiration: number;
   /**
-   * (base) List of contract addresses that can be accessed with this permission
-   */
-  public contracts: string[];
-  /**
-   * (base) List of project identifiers (strings) that can be accessed
-   */
-  public projects: string[];
-  /**
    * (sharing) The user that this permission will be shared with
    * ** optional, use `address(0)` to disable **
    */
@@ -75,8 +67,8 @@ export class Permit implements PermitInterface, PermitMetadata {
   /**
    * (base) `signTypedData` signature created by `issuer`.
    * (base) Shared- and Self- permissions differ in signature format: (`sealingKey` absent in shared signature)
-   *   (non-sharing) < issuer, expiration, contracts, projects, recipient, validatorId, validatorContract, sealingKey >
-   *   (sharing)     < issuer, expiration, contracts, projects, recipient, validatorId, validatorContract >
+   *   (non-sharing) < issuer, expiration, recipient, validatorId, validatorContract, sealingKey >
+   *   (sharing)     < issuer, expiration, recipient, validatorId, validatorContract >
    */
   public issuerSignature: string;
   /**
@@ -100,8 +92,6 @@ export class Permit implements PermitInterface, PermitMetadata {
     this.type = options.type;
     this.issuer = options.issuer;
     this.expiration = options.expiration;
-    this.contracts = options.contracts;
-    this.projects = options.projects;
     this.recipient = options.recipient;
     this.validatorId = options.validatorId;
     this.validatorContract = options.validatorContract;
@@ -194,8 +184,6 @@ export class Permit implements PermitInterface, PermitMetadata {
       type: this.type,
       issuer: this.issuer,
       expiration: this.expiration,
-      contracts: this.contracts,
-      projects: this.projects,
       recipient: this.recipient,
       validatorId: this.validatorId,
       validatorContract: this.validatorContract,
@@ -216,8 +204,6 @@ export class Permit implements PermitInterface, PermitMetadata {
       expiration: this.expiration,
     };
 
-    if (this.contracts.length > 0) cleanedPermit.contracts = this.contracts;
-    if (this.projects.length > 0) cleanedPermit.projects = this.projects;
     if (this.recipient !== ZeroAddress)
       cleanedPermit.recipient = this.recipient;
     if (this.validatorId !== 0) cleanedPermit.validatorId = this.validatorId;
@@ -289,8 +275,6 @@ export class Permit implements PermitInterface, PermitMetadata {
           type: this.type,
           issuer: this.issuer,
           expiration: this.expiration,
-          contracts: this.contracts,
-          projects: this.projects,
           recipient: this.recipient,
           validatorId: this.validatorId,
           validatorContract: this.validatorContract,
@@ -421,55 +405,6 @@ export class Permit implements PermitInterface, PermitMetadata {
     // Primitive
     return item;
   }
-
-  /**
-   * Check if permit satisfies the requirements param.
-   * Permit must satisfy either the contracts list or the projects list
-   *
-   * @param {{contracts?: string[], projects?: string[]}} requirements - Lists of contract and project requirements.
-   * @returns {satisfies: boolean, unsatisfiedContracts, unsatisfiedProjects} - satisfied if either req list is fulfilled.
-   */
-  getSatisfies = (requirements: {
-    contracts?: string[];
-    projects?: string[];
-  }):
-    | { satisfies: true; unsatisfiedContracts: null; unsatisfiedProjects: null }
-    | {
-        satisfies: false;
-        unsatisfiedContracts: string[];
-        unsatisfiedProjects: string[];
-      } => {
-    let contractsSatisfied = true;
-    const unsatisfiedContracts: string[] = [];
-    for (const contract in requirements.contracts) {
-      if (!this.contracts.includes(contract)) {
-        contractsSatisfied = false;
-        unsatisfiedContracts.push(contract);
-      }
-    }
-
-    let projectsSatisfied = true;
-    const unsatisfiedProjects: string[] = [];
-    for (const project in requirements.projects) {
-      if (!this.projects.includes(project)) {
-        projectsSatisfied = false;
-        unsatisfiedProjects.push(project);
-      }
-    }
-
-    if (contractsSatisfied || projectsSatisfied)
-      return {
-        satisfies: true,
-        unsatisfiedContracts: null,
-        unsatisfiedProjects: null,
-      };
-
-    return {
-      satisfies: false,
-      unsatisfiedContracts,
-      unsatisfiedProjects,
-    };
-  };
 
   /**
    * Returns whether the active party has created their signature.

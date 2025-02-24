@@ -55,16 +55,12 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     expect(permit.type).to.eq("self");
     expect(permit.issuer).to.eq(bobAddress);
 
     // Check defaults here, skipped elsewhere
-    expect(permit.contracts).to.deep.eq([contractAddress, contractAddress2]);
-    expect(permit.projects).to.deep.eq([counterProjectId]);
     expect(permit.expiration).to.eq(1000000000000);
     expect(permit.recipient).to.eq(ZeroAddress);
     expect(permit.validatorId).to.eq(0);
@@ -89,7 +85,6 @@ describe("Permit Tests", () => {
       type: "sharing",
       issuer: bobAddress,
       recipient: adaAddress,
-      projects: [counterProjectId],
     });
 
     expect(permit.type).to.eq("sharing");
@@ -102,7 +97,6 @@ describe("Permit Tests", () => {
       issuer: bobAddress,
       recipient: adaAddress,
       issuerSignature: "0xBobSignature",
-      projects: [counterProjectId],
     });
 
     expect(permit.type).to.eq("recipient");
@@ -115,8 +109,6 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     await permit.sign(bobProvider.chainId, bobSigner);
@@ -128,8 +120,6 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "sharing",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
       recipient: adaAddress,
     });
 
@@ -142,8 +132,6 @@ describe("Permit Tests", () => {
     const bobPermit = await Permit.create({
       type: "sharing",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
       recipient: adaAddress,
     });
 
@@ -174,8 +162,6 @@ describe("Permit Tests", () => {
       name: "Test Bob Permit",
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     await permit.sign(bobProvider.chainId, bobSigner);
@@ -191,15 +177,11 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     const permit2 = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     // Stable hashes
@@ -210,8 +192,6 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     // Bool
@@ -247,8 +227,6 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     // Bool
@@ -340,8 +318,6 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     const serialized = permit.serialize();
@@ -356,8 +332,6 @@ describe("Permit Tests", () => {
     const permit = await Permit.create({
       type: "self",
       issuer: bobAddress,
-      contracts: [contractAddress, contractAddress2],
-      projects: [counterProjectId],
     });
 
     await permit.sign(bobProvider.chainId, bobSigner);
@@ -367,8 +341,6 @@ describe("Permit Tests", () => {
     const deserialized = Permit.deserialize(serialized);
 
     expect(serialized.issuer).to.eq(deserialized.issuer);
-    expect(serialized.contracts).to.deep.eq(deserialized.contracts);
-    expect(serialized.projects).to.deep.eq(deserialized.projects);
     expect(serialized.recipient).to.eq(deserialized.recipient);
     expect(serialized.issuerSignature).to.eq(deserialized.issuerSignature);
     expect(serialized.recipientSignature).to.eq(

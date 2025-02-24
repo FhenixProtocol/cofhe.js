@@ -131,8 +131,6 @@ Before interacting with your users' permits, you must first initialize the sdk:
 await cofhejs.initialize({
   provider: userProvider,   // Implementation of AbstractAccount in `types.ts`
   signer: userSigner,       // Implementation of AbstractSigner in `types.ts`
-  projects: [...],          // List of projects that your user's permits must allow access to, eg "FHERC20" to read token balances.
-  contracts: [...]          // List of contract addresses that your user's permits must allow access to.
 })
 ```
 
@@ -144,14 +142,11 @@ then, to create a new Permit, simply:
 await cofhejs.createPermit({
   type: "self",
   issuer: userAddress,
-  projects: ["FHERC20"]
 })
 
 // Alternatively, you can create a permit with the default options:
 // type: "self"
 // issuer: address of signer passed into `cofhejs.initialize`
-// projects: list of projects passed into `cofhejs.initialize`
-// contracts: list of contracts passed into `cofhejs.initialize`
 await cofhejs.createPermit()
 ```
 
