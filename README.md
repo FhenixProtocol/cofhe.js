@@ -117,18 +117,18 @@ Completely untested. Maybe yes, maybe no, maybe both.
 
 ## fhenix.js sdk
 
-`fhenixsdk` is designed to make interacting with FHE enabled blockchains typesafe and as streamlined as possible by providing utility functions for inputs, permits (permissions), and outputs. The sdk is an opinionated implementation of the underling `Permit` class, therefor if the sdk is too limiting for your use case (e.g. multiple active users), you can easily drop down into the core `Permit` class to extend its functionality.
+`cofhejs` is designed to make interacting with FHE enabled blockchains typesafe and as streamlined as possible by providing utility functions for inputs, permits (permissions), and outputs. The sdk is an opinionated implementation of the underling `Permit` class, therefor if the sdk is too limiting for your use case (e.g. multiple active users), you can easily drop down into the core `Permit` class to extend its functionality.
 
-NOTE: `fhenixsdk` is still in beta, and while we will try to avoid it, we may release breaking changes in the future if necessary.
+NOTE: `cofhejs` is still in beta, and while we will try to avoid it, we may release breaking changes in the future if necessary.
 
 The sdk can be imported by:
 ```typescript
-import { fhenixsdk } from "fhenix.js"
+import { cofhejs } from "fhenix.js"
 ```
 
 Before interacting with your users' permits, you must first initialize the sdk:
 ```typescript
-await fhenixsdk.initialize({
+await cofhejs.initialize({
   provider: userProvider,   // Implementation of AbstractAccount in `types.ts`
   signer: userSigner,       // Implementation of AbstractSigner in `types.ts`
   projects: [...],          // List of projects that your user's permits must allow access to, eg "FHERC20" to read token balances.
@@ -141,7 +141,7 @@ NOTE: When the user changes, it is recommended to re-initialize the sdk with the
 
 then, to create a new Permit, simply:
 ```typescript
-await fhenixsdk.createPermit({
+await cofhejs.createPermit({
   type: "self",
   issuer: userAddress,
   projects: ["FHERC20"]
@@ -149,16 +149,16 @@ await fhenixsdk.createPermit({
 
 // Alternatively, you can create a permit with the default options:
 // type: "self"
-// issuer: address of signer passed into `fhenixsdk.initialize`
-// projects: list of projects passed into `fhenixsdk.initialize`
-// contracts: list of contracts passed into `fhenixsdk.initialize`
-await fhenixsdk.createPermit()
+// issuer: address of signer passed into `cofhejs.initialize`
+// projects: list of projects passed into `cofhejs.initialize`
+// contracts: list of contracts passed into `cofhejs.initialize`
+await cofhejs.createPermit()
 ```
 
 ### Permissions
 Now that the user has an active permit, we can extract the relevant `Permission` data from that permit:
 ```typescript
-const permit = fhenixsdk.getPermit()
+const permit = cofhejs.getPermit()
 const permission = permit.getPermission()
 ```
 
@@ -186,7 +186,7 @@ function add(inEuint32 calldata encryptedValue) public {
 }
 ```
 
-We need to pass an encrypted value into `inEuint32`. Using `fhenixsdk` this is accomplished by:
+We need to pass an encrypted value into `inEuint32`. Using `cofhejs` this is accomplished by:
 ```typescript
 const encryptableValue = Encryptable.uint32(5);
 const encryptedArgs = client.encrypt(encryptableValue)
@@ -206,14 +206,14 @@ const encrypted = client.encrypt(
 ```
 
 ### Output data (sealed)
-Encrypted data is sealed before it is returned to the users, at which point it can be unsealed on the client. By using the structs `SealedUint` / `SealedBool` / `SealedAddress` provided in `FHE.sol`, the sealed output variables can be automatically decrypted into the correct type using `fhenixsdk.unseal`.
+Encrypted data is sealed before it is returned to the users, at which point it can be unsealed on the client. By using the structs `SealedUint` / `SealedBool` / `SealedAddress` provided in `FHE.sol`, the sealed output variables can be automatically decrypted into the correct type using `cofhejs.unseal`.
 
 A function with the following return type:
 ```solidity
 function getSealedData(Permissioned memory permission) view returns (uint256, string memory, SealedUint memory, SealedUint memory, SealedBool memory);
 ```
 
-can be unsealed with `fhenixsdk`:
+can be unsealed with `cofhejs`:
 ```typescript
 const data = await contract.getSealedData(permission);
 
@@ -221,16 +221,16 @@ const unsealed = await client.unseal(data)
 //    ?^ - [bigint, string, bigint, bigint, bool]
 ```
 
-As with `fhenixsdk.encrypt` above, `unseal` will also recursively unseal any nested data structures.
+As with `cofhejs.encrypt` above, `unseal` will also recursively unseal any nested data structures.
 
 ### Notes
 
-- `fhenixsdk` uses `zustand` behind the scenes to persist your user's Permits. These zustand stores can be imported directly to be used as part of hooks. In the future we will also expose hooks to streamline interacting with the sdk in your react enabled dApps.
+- `cofhejs` uses `zustand` behind the scenes to persist your user's Permits. These zustand stores can be imported directly to be used as part of hooks. In the future we will also expose hooks to streamline interacting with the sdk in your react enabled dApps.
 - We plan to provide viem hooks inspired by `scaffold-eth`'s `useScaffoldContractRead` and `useScaffoldContractWrite` to automatically encrypt input data, inject permissions, and unseal output data.
 
 ## `FhenixClient` and `FhenixClientSync`
 
-`FhenixClient` uses the legacy Permission system (V1), it is recommended to migrate to `fhenixsdk` and `Permit`s above.
+`FhenixClient` uses the legacy Permission system (V1), it is recommended to migrate to `cofhejs` and `Permit`s above.
 
 ### Usage
 

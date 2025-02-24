@@ -26,7 +26,7 @@ import { zkPack, zkProve, zkVerify } from "./zkPoK";
 import { initTfhe } from "./tfhe-wrapper";
 
 /**
- * Initializes the `fhenixsdk` to enable encrypting input data, creating permits / permissions, and decrypting sealed outputs.
+ * Initializes the `cofhejs` to enable encrypting input data, creating permits / permissions, and decrypting sealed outputs.
  * Initializes `fhevm` client FHE wasm module and fetches the provided chain's FHE publicKey.
  * If a valid signer is provided, a `permit/permission` is generated automatically
  */
@@ -83,24 +83,22 @@ const _checkInitialized = (
   },
 ) => {
   if (options?.fheKeys !== false && !state.fheKeysInitialized) {
-    return ResultErr(
-      "fhenixsdk not initialized. Use `fhenixsdk.initialize(...)`.",
-    );
+    return ResultErr("cofhejs not initialized. Use `cofhejs.initialize(...)`.");
   }
 
   if (options?.coFheUrl !== false && !state.coFheUrl)
     return ResultErr(
-      "fhenixsdk not initialized with a coFheUrl. Set `coFheUrl` in `fhenixsdk.initialize`.",
+      "cofhejs not initialized with a coFheUrl. Set `coFheUrl` in `cofhejs.initialize`.",
     );
 
   if (options?.provider !== false && !state.providerInitialized)
     return ResultErr(
-      "fhenixsdk not initialized with valid provider. Use `fhenixsdk.initialize(...)` with a valid provider that satisfies `AbstractProvider`.",
+      "cofhejs not initialized with valid provider. Use `cofhejs.initialize(...)` with a valid provider that satisfies `AbstractProvider`.",
     );
 
   if (options?.signer !== false && !state.signerInitialized)
     return ResultErr(
-      "fhenixsdk not initialized with a valid signer. Use `fhenixsdk.initialize(...)` with a valid signer that satisfies `AbstractSigner`.",
+      "cofhejs not initialized with a valid signer. Use `cofhejs.initialize(...)` with a valid signer that satisfies `AbstractSigner`.",
     );
 
   return ResultOk(null);
@@ -521,7 +519,7 @@ function unseal<T>(
 
 // Export
 
-export const fhenixsdk = {
+export const cofhejs = {
   store: _sdkStore,
   initialize,
 

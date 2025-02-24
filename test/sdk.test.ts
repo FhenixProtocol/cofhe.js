@@ -8,7 +8,7 @@ import { beforeAll, describe, expect, expectTypeOf, it } from "vitest";
 import { AdaWallet, BobWallet, MockProvider, MockSigner } from "./utils";
 import { afterEach } from "vitest";
 import { getAddress } from "ethers";
-import { fhenixsdk } from "../src/sdk";
+import { cofhejs } from "../src/sdk";
 import { Permit, permitStore } from "../src/sdk/permit";
 import { _permitStore } from "../src/sdk/permit/store";
 import { SealingKey } from "../src/sdk/sealing";
@@ -46,7 +46,7 @@ describe("Sdk Tests", () => {
   const coFheUrl = "http://127.0.0.1:3000";
 
   const initSdkWithBob = async () => {
-    return fhenixsdk.initialize({
+    return cofhejs.initialize({
       target: "node",
       provider: bobProvider,
       signer: bobSigner,
@@ -55,7 +55,7 @@ describe("Sdk Tests", () => {
     });
   };
   const initSdkWithAda = async () => {
-    return fhenixsdk.initialize({
+    return cofhejs.initialize({
       target: "node",
       provider: adaProvider,
       signer: adaSigner,
@@ -76,12 +76,12 @@ describe("Sdk Tests", () => {
     adaAddress = await adaSigner.getAddress();
 
     localStorage.clear();
-    fhenixsdk.store.setState(fhenixsdk.store.getInitialState());
+    cofhejs.store.setState(cofhejs.store.getInitialState());
   });
 
   afterEach(() => {
     localStorage.clear();
-    fhenixsdk.store.setState(fhenixsdk.store.getInitialState());
+    cofhejs.store.setState(cofhejs.store.getInitialState());
     _permitStore.setState(_permitStore.getInitialState());
   });
 
@@ -90,16 +90,16 @@ describe("Sdk Tests", () => {
   });
 
   it("initialize", async () => {
-    expect(fhenixsdk.store.getState().providerInitialized).toEqual(false);
-    expect(fhenixsdk.store.getState().signerInitialized).toEqual(false);
-    expect(fhenixsdk.store.getState().fheKeysInitialized).toEqual(false);
+    expect(cofhejs.store.getState().providerInitialized).toEqual(false);
+    expect(cofhejs.store.getState().signerInitialized).toEqual(false);
+    expect(cofhejs.store.getState().fheKeysInitialized).toEqual(false);
 
     await initSdkWithBob();
-    expect(fhenixsdk.store.getState().providerInitialized).toEqual(true);
-    expect(fhenixsdk.store.getState().signerInitialized).toEqual(true);
-    expect(fhenixsdk.store.getState().fheKeysInitialized).toEqual(true);
+    expect(cofhejs.store.getState().providerInitialized).toEqual(true);
+    expect(cofhejs.store.getState().signerInitialized).toEqual(true);
+    expect(cofhejs.store.getState().fheKeysInitialized).toEqual(true);
 
-    const initWithoutProviderResult = await fhenixsdk.initialize({
+    const initWithoutProviderResult = await cofhejs.initialize({
       target: "node",
       // provider: bobProvider,
       // signer: bobSigner,
@@ -110,7 +110,7 @@ describe("Sdk Tests", () => {
       "initialize :: missing provider - Please provide an AbstractProvider interface",
     );
 
-    const initWithoutSecurityZonesResult = await fhenixsdk.initialize({
+    const initWithoutSecurityZonesResult = await cofhejs.initialize({
       target: "node",
       provider: bobProvider,
       signer: bobSigner,
@@ -130,7 +130,7 @@ describe("Sdk Tests", () => {
 
     // Bob's new permit is the active permit
 
-    let bobFetchedPermit = await fhenixsdk.getPermit();
+    let bobFetchedPermit = await cofhejs.getPermit();
     expect(bobFetchedPermit.success).toEqual(true);
     expect(bobFetchedPermit.data?.getHash()).toEqual(bobPermit.data?.getHash());
 
@@ -140,7 +140,7 @@ describe("Sdk Tests", () => {
 
     // Ada does not have an active permit
 
-    const adaFetchedPermit = await fhenixsdk.getPermit();
+    const adaFetchedPermit = await cofhejs.getPermit();
     expect(adaFetchedPermit.success).toEqual(true);
     expect(adaFetchedPermit.data?.getHash()).toEqual(adaPermit.data?.getHash());
 
@@ -156,7 +156,7 @@ describe("Sdk Tests", () => {
   // it("encrypt", async () => {
   //   await initSdkWithBob();
 
-  //   const nestedEncryptArr = await fhenixsdk.encrypt([
+  //   const nestedEncryptArr = await cofhejs.encrypt([
   //     Encryptable.uint8(8),
   //     Encryptable.uint64(64n),
   //     Encryptable.uint256(256n),
@@ -178,7 +178,7 @@ describe("Sdk Tests", () => {
   //   expect(nestedEncryptArr.data[1].utype).to.equal(FheUType.uint64);
   //   expect(nestedEncryptArr.data[2].utype).to.equal(FheUType.uint256);
 
-  //   const nestedEncryptObj = await fhenixsdk.encrypt({
+  //   const nestedEncryptObj = await cofhejs.encrypt({
   //     uint8: Encryptable.uint8(8),
   //     uint64: Encryptable.uint64(64n),
   //     uint256: Encryptable.uint256(256n),
@@ -205,7 +205,7 @@ describe("Sdk Tests", () => {
   it("encrypt (type check)", async () => {
     await initSdkWithBob();
 
-    await fhenixsdk.createPermit({
+    await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
       projects: [counterProjectId],
@@ -213,10 +213,10 @@ describe("Sdk Tests", () => {
 
     const PermissionSlot = "permission" as const;
 
-    const injectedPermission = await fhenixsdk.prepareInputs(PermissionSlot);
+    const injectedPermission = await cofhejs.prepareInputs(PermissionSlot);
     expectTypeOf(injectedPermission.data!).toEqualTypeOf<Permission>();
 
-    const nestedEncrypt = await fhenixsdk.prepareInputs([
+    const nestedEncrypt = await cofhejs.prepareInputs([
       PermissionSlot,
       { a: Encryptable.bool(false), b: Encryptable.uint64(10n), c: "hello" },
       ["hello", 20n, Encryptable.address(contractAddress)],
@@ -249,12 +249,12 @@ describe("Sdk Tests", () => {
     // zustand persist is heavily tested, this test is just to ensure that its working in our implementation
 
     await initSdkWithBob();
-    const permit1 = await fhenixsdk.createPermit({
+    const permit1 = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
       projects: [counterProjectId],
     });
-    const permit2 = await fhenixsdk.createPermit({
+    const permit2 = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
       projects: [counterProjectId, uniswapProjectId],
@@ -297,18 +297,18 @@ describe("Sdk Tests", () => {
     ).toEqual(permit2?.data?.getHash());
   });
   it("createPermit", async () => {
-    const createPermitWithoutInitResult = await fhenixsdk.createPermit({
+    const createPermitWithoutInitResult = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
       projects: [counterProjectId],
     });
     expect(createPermitWithoutInitResult.success).toEqual(false);
     expect(createPermitWithoutInitResult.error).toEqual(
-      "createPermit :: fhenixsdk not initialized. Use `fhenixsdk.initialize(...)`.",
+      "createPermit :: cofhejs not initialized. Use `cofhejs.initialize(...)`.",
     );
 
     await initSdkWithBob();
-    const permit = await fhenixsdk.createPermit({
+    const permit = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
       projects: [counterProjectId],
@@ -333,7 +333,7 @@ describe("Sdk Tests", () => {
 
     // Creating new permit
 
-    const permit2 = await fhenixsdk.createPermit({
+    const permit2 = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
       projects: [counterProjectId],
@@ -356,7 +356,7 @@ describe("Sdk Tests", () => {
   it("unsealCiphertext", async () => {
     await initSdkWithBob();
     const permit = (
-      await fhenixsdk.createPermit({
+      await cofhejs.createPermit({
         type: "self",
         issuer: bobAddress,
         contracts: [contractAddress, contractAddress2],
@@ -446,21 +446,21 @@ describe("Sdk Tests", () => {
   //   bobSigner = await bobProvider.getSigner();
 
   //   // Should initialize correctly, but fhe public key for hardhat not set
-  //   await fhenixsdk.initialize({
+  //   await cofhejs.initialize({
   //     provider: bobProvider,
   //     signer: bobSigner,
   //     projects: [counterProjectId],
   //   });
-  //   await fhenixsdk.createPermit();
+  //   await cofhejs.createPermit();
 
   //   // Chain id set to hardhat Chain id
-  //   expect(fhenixsdk.store.getState().chainId).toEqual(hardhatChainId);
-  //   expect(fhenixsdk.store.getState().fheKeys).toEqual({});
+  //   expect(cofhejs.store.getState().chainId).toEqual(hardhatChainId);
+  //   expect(cofhejs.store.getState().fheKeys).toEqual({});
 
   //   // `unsealCiphertext`
 
-  //   // const encryptedValue = fhenixsdk.encryptValue(5, EncryptionTypes.uint8);
-  //   // const unsealedValue = fhenixsdk.unsealCiphertext(
+  //   // const encryptedValue = cofhejs.encryptValue(5, EncryptionTypes.uint8);
+  //   // const unsealedValue = cofhejs.unsealCiphertext(
   //   //   uint8ArrayToString(encryptedValue.data!.data),
   //   // );
   //   // expect(unsealedValue.success).toEqual(true);
@@ -472,7 +472,7 @@ describe("Sdk Tests", () => {
   //   const boolValue = false;
 
   //   const encryptResult = (
-  //     await fhenixsdk.encrypt([
+  //     await cofhejs.encrypt([
   //       Encryptable.uint8(intValue),
   //       Encryptable.bool(boolValue),
   //     ])
@@ -487,7 +487,7 @@ describe("Sdk Tests", () => {
   //     { data: uint8ArrayToString(encryptedBool), utype: FheUType.bool },
   //   ];
 
-  //   const [unsealedInt, unsealedBool] = fhenixsdk.unseal(sealed).data!;
+  //   const [unsealedInt, unsealedBool] = cofhejs.unseal(sealed).data!;
   //   expect(unsealedInt).to.eq(BigInt(intValue));
   //   expect(unsealedBool).to.eq(boolValue);
   // });

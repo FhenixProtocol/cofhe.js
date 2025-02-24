@@ -1,7 +1,7 @@
 import { waitForChainToStart } from "./utils";
 import { killDockerContainerAsync, runDockerContainerAsync } from "./docker";
 
-const TEST_ENDPOINT_URL = process.env.TEST_ENDPOINT || "http://localhost:8545";
+const TEST_ENDPOINT_URL = process.env.TEST_ENDPOINT || "http://localhost:3000";
 
 export const setup = async () => {
   if (process.env.SKIP_LOCAL_ENV === "true") {
@@ -10,7 +10,7 @@ export const setup = async () => {
 
   runDockerContainerAsync();
 
-  console.log("\nWaiting for Fhenix to start...");
+  console.log("\nWaiting for zk verifier to start...");
 
   await waitForChainToStart(TEST_ENDPOINT_URL);
 

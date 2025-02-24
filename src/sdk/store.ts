@@ -249,7 +249,7 @@ export const _store_fetchFheKey = async (
   const coFheUrl = _sdkStore.getState().coFheUrl;
   if (coFheUrl == null || typeof coFheUrl !== "string") {
     throw new Error(
-      "Error initializing fhenixjs; coFheUrl invalid, ensure it is set in `fhenixsdk.initialize`",
+      "Error initializing fhenixjs; coFheUrl invalid, ensure it is set in `cofhejs.initialize`",
     );
   }
 

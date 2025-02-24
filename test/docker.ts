@@ -5,17 +5,17 @@ import util from "util";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const execPromise = util.promisify(require("child_process").exec);
-export const CONTAINER_NAME = "fhenixjs-test-env";
+export const CONTAINER_NAME = "cofhejs-test-zk-verifier";
 
 // Function to run a Docker container using the 'execPromise' function
 export async function runDockerContainerAsync() {
-  const imageName = "ghcr.io/fhenixprotocol/nitro/localfhenix:v0.3.0-alpha.1";
+  const imageName = "ghcr.io/fhenixprotocol/zk-verifier:alpha-no-fheos";
 
-  const ports = "-p 8545:8547 -p 5000:3000";
+  const ports = "-p 3000:3000";
 
   const removePrevious = `docker kill ${CONTAINER_NAME}`;
 
-  const command = `docker run --rm --env FHEOS_SECURITY_ZONES=2 --name ${CONTAINER_NAME} ${ports} -d ${imageName}`;
+  const command = `docker run --rm --name ${CONTAINER_NAME} ${ports} -d ${imageName}`;
 
   try {
     try {
