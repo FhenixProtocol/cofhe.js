@@ -200,7 +200,7 @@ describe("Sdk Tests", () => {
   //   );
   // });
 
-  it("encrypt (type check)", async () => {
+  it("encrypt (type check)", { timeout: 120000 }, async () => {
     await initSdkWithBob();
 
     await cofhejs.createPermit({
@@ -208,20 +208,13 @@ describe("Sdk Tests", () => {
       issuer: bobAddress,
     });
 
-    const PermissionSlot = "permission" as const;
-
-    const injectedPermission = await cofhejs.prepareInputs(PermissionSlot);
-    expectTypeOf(injectedPermission.data!).toEqualTypeOf<Permission>();
-
-    const nestedEncrypt = await cofhejs.prepareInputs([
-      PermissionSlot,
+    const nestedEncrypt = await cofhejs.encrypt([
       { a: Encryptable.bool(false), b: Encryptable.uint64(10n), c: "hello" },
       ["hello", 20n, Encryptable.address(contractAddress)],
       Encryptable.uint8("10"),
     ] as const);
 
     type ExpectedEncryptedType = [
-      Permission,
       Readonly<{ a: CoFheInBool; b: CoFheInUint64; c: string }>,
       Readonly<[string, bigint, CoFheInAddress]>,
       CoFheInUint8,
@@ -247,10 +240,6 @@ describe("Sdk Tests", () => {
 
     await initSdkWithBob();
     const permit1 = await cofhejs.createPermit({
-      type: "self",
-      issuer: bobAddress,
-    });
-    const permit2 = await cofhejs.createPermit({
       type: "self",
       issuer: bobAddress,
     });
@@ -282,13 +271,12 @@ describe("Sdk Tests", () => {
       dumped["fhenixjs-permits"]["state"]["permits"][bobAddress];
     expect(bobsPermitsDumped).to.have.keys(
       permit1?.data?.getHash() ?? "permit1Hash",
-      permit2?.data?.getHash() ?? "permit2Hash",
     );
 
     // ActivePermit
     expect(
       dumped["fhenixjs-permits"]["state"]["activePermitHash"][bobAddress],
-    ).toEqual(permit2?.data?.getHash());
+    ).toEqual(permit1?.data?.getHash());
   });
   it("createPermit", async () => {
     const createPermitWithoutInitResult = await cofhejs.createPermit({

@@ -19,9 +19,9 @@ export async function runDockerContainerAsync() {
 
   try {
     try {
-      await execPromise(removePrevious);
+      // await execPromise(removePrevious);
     } catch (_) {}
-    const result = await execPromise(command);
+    // const result = await execPromise(command);
     // console.log(result.stdout);
     // console.error(result.stderr);
   } catch (error: any) {
@@ -34,7 +34,7 @@ export async function killDockerContainerAsync() {
   const removePrevious = `docker kill ${CONTAINER_NAME}`;
 
   try {
-    await execPromise(removePrevious);
+    // await execPromise(removePrevious);
   } catch (error: any) {
     console.error(error.message);
     throw new Error("Failed to remove docker container");

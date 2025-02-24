@@ -1,7 +1,6 @@
-import { EncryptableItem } from "../types";
+import { EncryptableItem, Result, ResultErr, ResultOk } from "../types";
 import {
   fromHexString,
-  recordToUint8Array,
   toBigInt,
   toBigIntOrThrow,
   validateBigIntInRange,
@@ -91,16 +90,23 @@ export const zkProve = async (
   address: string,
   securityZone: number,
 ): Promise<ProvenCompactCiphertextList> => {
+  const sz_byte = new Uint8Array([securityZone]);
+
+  const metadata = new Uint8Array(address.length + 1);
+  metadata.set(new TextEncoder().encode(address));
+  metadata.set([sz_byte[0]], address.length);
+
   return new Promise((resolve) => {
     setTimeout(() => {
       const tfhe = getTfhe();
 
       const compactList = builder.build_with_proof_packed(
         crs,
-        recordToUint8Array({
-          account_address: address,
-          security_zone: securityZone,
-        }),
+        metadata,
+        // recordToUint8Array({
+        //   account_address: address,
+        //   security_zone: securityZone,
+        // }),
         tfhe.ZkComputeLoad.Verify,
       );
 
@@ -109,16 +115,76 @@ export const zkProve = async (
   });
 };
 
+type VerifyResultRaw = {
+  ct_hash: string;
+  signature: string;
+  recid: number;
+};
+
+type VerifyResult = {
+  ct_hash: string;
+  signature: string;
+};
+
 export const zkVerify = async (
   coFheUrl: string,
   compactList: ProvenCompactCiphertextList,
-) => {
-  // Send to zkVerifier as an api call
-  return fetch(`${coFheUrl}/VerifyZKProof`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: compactList.serialize(),
-  });
+  address: string,
+  securityZone: number,
+): Promise<Result<VerifyResult[]>> => {
+  // send this to verifier
+  const list_bytes = compactList.serialize();
+
+  // Convert bytearray to base64 string
+  const base64List = btoa(String.fromCharCode.apply(null, list_bytes));
+
+  const sz_byte = new Uint8Array([securityZone]);
+
+  // Construct request payload
+  const payload = {
+    packed_list: base64List,
+    account_addr: address,
+    security_zone: sz_byte[0],
+  };
+
+  const body = JSON.stringify(payload);
+
+  // Send request to verification server
+  try {
+    const response = await fetch(`${coFheUrl}/verify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body,
+    });
+
+    if (!response.ok) {
+      // Get the response body as text for better error details
+      const errorBody = await response.text();
+      console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers));
+      console.log("Response body:", errorBody);
+      return ResultErr(
+        `HTTP error! status: ${response.status}, body: ${errorBody}`,
+      );
+    }
+
+    const json: { status: string; data: VerifyResultRaw[]; error: string } =
+      await response.json();
+
+    if (json.status === "success") {
+      return ResultOk(
+        json.data.map(({ ct_hash, signature, recid }) => ({
+          ct_hash,
+          signature: `${signature}${recid + 27}`,
+        })),
+      );
+    } else {
+      return ResultErr(json.error);
+    }
+  } catch (e) {
+    console.error(e);
+    return ResultErr(e);
+  }
 };

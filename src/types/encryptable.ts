@@ -11,7 +11,6 @@ import {
   CoFheInAddress,
 } from "./encrypted";
 import { FheTypes } from "tfhe";
-import { Permission } from "./permit";
 
 export type EncryptableBool = {
   data: boolean;
@@ -95,15 +94,13 @@ export type Encryptable_CoFheInItem_Map<E extends EncryptableItem> =
                   ? CoFheInAddress
                   : never;
 
-export type Prepared_Inputs<T> = T extends "permission"
-  ? Permission
-  : T extends Primitive
-    ? LiteralToPrimitive<T>
-    : T extends EncryptableItem
-      ? Encryptable_CoFheInItem_Map<T>
-      : {
-          [K in keyof T]: Prepared_Inputs<T[K]>;
-        };
+export type Encrypted_Inputs<T> = T extends Primitive
+  ? LiteralToPrimitive<T>
+  : T extends EncryptableItem
+    ? Encryptable_CoFheInItem_Map<T>
+    : {
+        [K in keyof T]: Encrypted_Inputs<T[K]>;
+      };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isEncryptableItem(value: any): value is EncryptableItem {

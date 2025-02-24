@@ -1,20 +1,6 @@
 import { FheTypes } from "tfhe";
 
 /**
- * An enumeration of supported encryption types.
- * uint8, uint16, and uint32 represent the different sizes of integers that can be encrypted.
- */
-export enum EncryptionTypes {
-  bool = "bool",
-  uint8 = "uint8",
-  uint16 = "uint16",
-  uint32 = "uint32",
-  uint64 = "uint64",
-  uint128 = "uint128",
-  uint256 = "uint256",
-}
-
-/**
  * List of All FHE uint types (excludes bool and address)
  */
 export const FheUintUTypes = [
@@ -37,4 +23,5 @@ export const FheAllUTypes = [
   FheTypes.Uint64,
   FheTypes.Uint128,
   FheTypes.Uint256,
+  FheTypes.Uint160,
 ] as const;

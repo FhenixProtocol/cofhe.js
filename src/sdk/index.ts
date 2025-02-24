@@ -10,7 +10,7 @@ import {
 } from "./store";
 import {
   CoFheInItem,
-  Prepared_Inputs,
+  Encrypted_Inputs,
   isEncryptableItem,
   PermitOptions,
   PermitInterface,
@@ -323,22 +323,15 @@ function extractEncryptables<T>(item: T) {
   return [];
 }
 
-function replaceEncryptablesAndInjectPermission<T>(
+function replaceEncryptables<T>(
   item: T,
   encryptedItems: CoFheInItem[],
-): [Prepared_Inputs<T>, CoFheInItem[]];
-function replaceEncryptablesAndInjectPermission<T extends any[]>(
+): [Encrypted_Inputs<T>, CoFheInItem[]];
+function replaceEncryptables<T extends any[]>(
   item: [...T],
   encryptedItems: CoFheInItem[],
-): [...Prepared_Inputs<T>, CoFheInItem[]];
-function replaceEncryptablesAndInjectPermission<T>(
-  item: T,
-  encryptedItems: CoFheInItem[],
-) {
-  if (item === "permission") {
-    return getPermission();
-  }
-
+): [...Encrypted_Inputs<T>, CoFheInItem[]];
+function replaceEncryptables<T>(item: T, encryptedItems: CoFheInItem[]) {
   if (isEncryptableItem(item)) {
     return [encryptedItems[0], encryptedItems.slice(1)];
   }
@@ -349,8 +342,7 @@ function replaceEncryptablesAndInjectPermission<T>(
       // Array - recurse
       return item.reduce<[any[], CoFheInItem[]]>(
         ([acc, remaining], item) => {
-          const [newItem, newRemaining] =
-            replaceEncryptablesAndInjectPermission(item, remaining);
+          const [newItem, newRemaining] = replaceEncryptables(item, remaining);
           return [[...acc, newItem], newRemaining];
         },
         [[], encryptedItems],
@@ -359,8 +351,10 @@ function replaceEncryptablesAndInjectPermission<T>(
       // Object - recurse
       return Object.entries(item).reduce<[Record<string, any>, CoFheInItem[]]>(
         ([acc, remaining], [key, value]) => {
-          const [newValue, newRemaining] =
-            replaceEncryptablesAndInjectPermission(value, remaining);
+          const [newValue, newRemaining] = replaceEncryptables(
+            value,
+            remaining,
+          );
           return [{ ...acc, [key]: newValue }, newRemaining];
         },
         [{}, encryptedItems],
@@ -371,15 +365,15 @@ function replaceEncryptablesAndInjectPermission<T>(
   return [item, encryptedItems];
 }
 
-async function prepareInputs<T>(
+async function encrypt<T>(
   item: T,
   securityZone?: number,
-): Promise<Result<Prepared_Inputs<T>>>;
-async function prepareInputs<T extends any[]>(
+): Promise<Result<Encrypted_Inputs<T>>>;
+async function encrypt<T extends any[]>(
   item: [...T],
   securityZone?: number,
-): Promise<Result<[...Prepared_Inputs<T>]>>;
-async function prepareInputs<T>(item: T, securityZone = 0) {
+): Promise<Result<[...Encrypted_Inputs<T>]>>;
+async function encrypt<T>(item: T, securityZone = 0) {
   const state = _sdkStore.getState();
 
   // Only need to check `fheKeysInitialized`, signer and provider not needed for encryption
@@ -387,43 +381,55 @@ async function prepareInputs<T>(item: T, securityZone = 0) {
     provider: false,
     signer: false,
   });
-  if (!initialized.success)
-    return ResultErr(`prepareInputs :: ${initialized.error}`);
+  if (!initialized.success) return ResultErr(`encrypt :: ${initialized.error}`);
 
   if (state.account == null)
-    return ResultErr("prepareInputs :: account uninitialized");
+    return ResultErr("encrypt :: account uninitialized");
 
   const fhePublicKey = _store_getConnectedChainFheKey(0);
   if (fhePublicKey == null)
-    return ResultErr("prepareInputs :: fheKey for current chain not found");
+    return ResultErr("encrypt :: fheKey for current chain not found");
 
   const crs = _store_getCrs(state.chainId);
   if (crs == null)
-    return ResultErr("prepareInputs :: CRS for current chain not found");
+    return ResultErr("encrypt :: CRS for current chain not found");
 
   const coFheUrl = state.coFheUrl;
-  if (coFheUrl == null)
-    return ResultErr("prepareInputs :: coFheUrl not initialized");
+  if (coFheUrl == null) return ResultErr("encrypt :: coFheUrl not initialized");
 
   const encryptableItems = extractEncryptables(item);
 
   const builder = zkPack(encryptableItems, fhePublicKey);
   const proved = await zkProve(builder, crs, state.account, securityZone);
-  const zkVerifyRes = await zkVerify(coFheUrl, proved);
+  const zkVerifyRes = await zkVerify(
+    coFheUrl,
+    proved,
+    state.account,
+    securityZone,
+  );
 
-  if (!zkVerifyRes.ok)
+  if (!zkVerifyRes.success)
     return ResultErr(
-      `prepareInputs :: ZK proof verification failed - ${await zkVerifyRes.text()}`,
+      `encrypt :: ZK proof verification failed - ${zkVerifyRes.error}`,
     );
 
-  const inItems: CoFheInItem[] = await zkVerifyRes.json();
+  const inItems: CoFheInItem[] = zkVerifyRes.data.map(
+    ({ ct_hash, signature }, index) => ({
+      hash: BigInt(ct_hash),
+      securityZone,
+      utype: encryptableItems[index].utype,
+      signature,
+    }),
+  );
 
-  const [preparedInputItems, remainingInItems] =
-    replaceEncryptablesAndInjectPermission(item, inItems);
+  const [preparedInputItems, remainingInItems] = replaceEncryptables(
+    item,
+    inItems,
+  );
 
-  if (remainingInItems != null)
+  if (remainingInItems.length !== 0)
     return ResultErr(
-      "prepareInputs :: some encrypted inputs remaining after replacement",
+      "encrypt :: some encrypted inputs remaining after replacement",
     );
 
   return ResultOk(preparedInputItems);
@@ -528,7 +534,7 @@ export const cofhejs = {
   getPermission,
   getAllPermits,
 
-  prepareInputs,
+  encrypt: encrypt,
 
   unsealCiphertext,
   unseal,
