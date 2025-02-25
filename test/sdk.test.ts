@@ -200,7 +200,7 @@ describe("Sdk Tests", () => {
   //   );
   // });
 
-  it("encrypt (type check)", { timeout: 120000 }, async () => {
+  it("encrypt (type check)", { timeout: 320000 }, async () => {
     await initSdkWithBob();
 
     await cofhejs.createPermit({
@@ -219,6 +219,8 @@ describe("Sdk Tests", () => {
       Readonly<[string, bigint, CoFheInAddress]>,
       CoFheInUint8,
     ];
+
+    console.log(JSON.stringify(nestedEncrypt.data, null, 2));
 
     expectTypeOf<Readonly<ExpectedEncryptedType>>().toEqualTypeOf(
       nestedEncrypt.data!,

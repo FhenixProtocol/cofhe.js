@@ -25,7 +25,7 @@ export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function waitForChainToStart(url: string) {
+export async function waitForZkVerifierToStart(url: string) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
